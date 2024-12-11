@@ -1,0 +1,157 @@
+.nav {
+  margin-top: 40px;
+}
+
+.pull-right {
+  float: right;
+}
+
+a,
+a:active {
+  color: #333;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #999;
+}
+
+/* Breadcrups CSS */
+
+.arrow-steps .step {
+  font-size: 14px;
+  text-align: center;
+  color: #FFFFFF;
+  cursor: default;
+  margin: 0 3px 10px 0px;
+
+  padding: 10px 10px 10px 30px;
+  min-width: 140px;
+  float: left;
+  position: relative;
+  background-color: #616161;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.arrow-steps .step:after,
+.arrow-steps .step:before {
+  content: " ";
+  position: absolute;
+  top: 0;
+  right: -16px;
+  width: 0;
+  height: 0;
+  border-top: 18px solid transparent;
+  border-bottom: 24px solid transparent;
+  border-left: 18px solid #616161;
+  z-index: 2;
+  transition: border-color 0.2s ease;
+}
+
+.arrow-steps .step:before {
+  right: auto;
+  left: 0;
+  border-left: 17px solid #fff;
+  z-index: 0;
+}
+
+.arrow-steps .step:first-child:before {
+  border: none;
+}
+
+.arrow-steps .step:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.arrow-steps .step span {
+  position: relative;
+}
+
+.arrow-steps .step span:before {
+  opacity: 0;
+  /* color: #9094A5; */
+  content: "✔";
+  position: absolute;
+  top: -2px;
+  left: -20px;
+}
+
+.arrow-steps .step.done span:before {
+  opacity: 1;
+  -webkit-transition: opacity 0.3s ease 0.5s;
+  -moz-transition: opacity 0.3s ease 0.5s;
+  -ms-transition: opacity 0.3s ease 0.5s;
+  transition: opacity 0.3s ease 0.5s;
+}
+
+.arrow-steps .step.current {
+  color: #fff;
+  background-color: #616161;
+}
+
+.arrow-steps .step.current:after {
+  border-left: 17px solid #616161;
+}
+
+
+.arrow-steps .step.done {
+  background-color: #28a745;
+  /* Green color for passed steps */
+  color: #fff;
+}
+
+.arrow-steps .step.done:after {
+  border-left: 17px solid #28a745;
+
+}
+
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  width: 300px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.modal-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal-btn.cancel {
+  background-color: #E0E0E0;
+  color: #333;
+}
+
+.modal-btn.confirm {
+  background-color: #bdc0cdde;
+  color: white;
+}

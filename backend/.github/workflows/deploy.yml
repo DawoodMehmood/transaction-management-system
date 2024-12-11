@@ -1,0 +1,50 @@
+name: Deploy Node.js App
+
+on:
+  push:
+    branches:
+      - main  # Change this to your default branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'  # Updated to Node.js 20.x
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_PRIVATE_KEY }}  # Store your private key in GitHub Secrets
+          HOST: ${{ secrets.EC2_HOST }}  # Store your EC2 public DNS in GitHub Secrets
+          USERNAME: ${{ secrets.EC2_USERNAME }}  # Store your EC2 username (e.g., 'ubuntu')
+        run: |
+          echo "$PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          # Create deployment directory
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $USERNAME@$HOST "mkdir -p /home/ubuntu/my-node-app"
+          # Install Node.js 20.x on EC2
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $USERNAME@$HOST "curl -sL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $USERNAME@$HOST "sudo apt-get install -y nodejs"
+          # Install pm2 globally
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $USERNAME@$HOST "sudo npm install -g pm2"
+          # Copy application files
+          scp -o StrictHostKeyChecking=no -i private_key.pem -r ./* $USERNAME@$HOST:/home/ubuntu/my-node-app/
+          # Deploy and restart the app using pm2
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $USERNAME@$HOST << 'EOF'
+            cd /home/ubuntu/my-node-app
+            npm install
+            if pm2 describe app > /dev/null; then
+              pm2 restart app
+            else
+              pm2 start index.js --name app  # Change from app.js to index.js here
+            fi
+          EOF
