@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { getServerUrl } from '../../utility/getServerUrl';
+import { getFormattedPrice } from '../../utility/getFormattedPrice';
 
 const ListingsSection = () => {
   const [data, setData] = useState([
@@ -14,7 +16,7 @@ const ListingsSection = () => {
     const fetchPriceSummary = async () => {
       try {
         const response = await fetch(
-          'https://api.tkglisting.com/api/transactions/price-summary'
+          `${getServerUrl()}/api/transactions/price-summary`
         );
 
         const result = await response.json();
@@ -24,7 +26,7 @@ const ListingsSection = () => {
           // Update "All Transactions" with total price and count
           const allTransactions = {
             ...data[0],
-            amount: `$${result.total_price}`,
+            amount: `$${getFormattedPrice(result.total_price)}`,
             transaction_count: result.total_transaction_count,
           };
 
@@ -35,12 +37,14 @@ const ListingsSection = () => {
             }
 
             const stagePrice = result.stage_wise_prices.find(
-              stage => stage.stage_id === index.toString()
+              (stage) => stage.stage_id === index.toString()
             );
 
             return {
               ...item,
-              amount: stagePrice ? `$${stagePrice.stage_total_price}` : '$0',
+              amount: stagePrice
+                ? `$${getFormattedPrice(stagePrice.stage_total_price)}`
+                : '$0',
               transaction_count: stagePrice ? stagePrice.transaction_count : 0,
             };
           });
@@ -63,15 +67,15 @@ const ListingsSection = () => {
   return (
     <div>
       {/* Header Section */}
-      <div className='flex justify-between w-full flex-wrap items-center mb-4'>
-        <div className='flex items-center'>
-          <p className='font-semibold text-sm text-gray-700'>Volume</p>
-          <img src='/down.svg' className='w-5 ml-2 mt-2 h-5' alt='dropdown' />
+      <div className="flex justify-between w-full flex-wrap items-center mb-4">
+        <div className="flex items-center">
+          <p className="font-semibold text-sm text-gray-700">Volume</p>
+          <img src="/down.svg" className="w-5 ml-2 mt-2 h-5" alt="dropdown" />
         </div>
       </div>
 
       {/* Transaction Section - Responsive Layout */}
-      <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mt-4'>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mt-4">
         {isLoading ? (
           <p>Loading...</p>
         ) : (
@@ -82,7 +86,7 @@ const ListingsSection = () => {
                 index === 0 ? 'text-gray-700' : 'text-gray-400'
               }`} // First item highlighted in gray
             >
-              <div className='flex justify-start items-center space-x-2'>
+              <div className="flex justify-start items-center space-x-2">
                 <p
                   className={`font-semibold text-sm ${
                     index === 0 ? 'text-gray-700' : 'text-gray-400'
@@ -90,11 +94,11 @@ const ListingsSection = () => {
                 >
                   {item.title}
                 </p>
-                <span className='text-sm text-gray-400'>
+                <span className="text-sm text-gray-400">
                   ({item.transaction_count})
                 </span>
               </div>
-              <div className='my-2'>
+              <div className="my-2">
                 <p
                   className={`font-bold text-2xl ${
                     index === 0 ? 'text-gray-700' : 'text-gray-400'

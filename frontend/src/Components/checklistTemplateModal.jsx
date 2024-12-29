@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showSuccessToast } from '../toastConfig';
 
 // Declare checklistData outside of the component
 const checklistData = {
@@ -44,7 +43,7 @@ export const ChecklistTemplateModal = ({
 }) => {
   const [selectedChecklist, setSelectedChecklist] = useState('Denver');
   const handleConfirm = () => {
-    toast.success(
+    showSuccessToast(
       'Applied Successfully! We are generating tasks according to the template you choose. You can refresh the page later.'
     );
     setSelectedChecklistData(checklistData[selectedChecklist]);
@@ -54,18 +53,6 @@ export const ChecklistTemplateModal = ({
   };
   return (
     <div>
-      <ToastContainer
-        position='top-right'
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme='light'
-      />
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -73,47 +60,47 @@ export const ChecklistTemplateModal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className='bg-slate-900/20 backdrop-blur p-4 fixed inset-0 z-50 grid place-items-center overflow-y-auto cursor-pointer'
+            className="bg-slate-900/20 backdrop-blur p-4 fixed inset-0 z-50 grid place-items-center overflow-y-auto cursor-pointer"
           >
             <motion.div
               initial={{ scale: 0.95, rotate: '12.5deg' }}
               animate={{ scale: 1, rotate: '0deg' }}
               exit={{ scale: 0.95, rotate: '0deg' }}
-              onClick={e => e.stopPropagation()}
-              className='bg-white w-full max-w-lg sm:max-w-xl md:max-w-3xl lg:max-w-4xl rounded-lg shadow-lg cursor-default overflow-hidden'
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white w-full max-w-lg sm:max-w-xl md:max-w-3xl lg:max-w-4xl rounded-lg shadow-lg cursor-default overflow-hidden"
             >
               {/* Modal Header */}
-              <div className='border border-b flex justify-between items-center py-5 px-5'>
+              <div className="border border-b flex justify-between items-center py-5 px-5">
                 <p>Choose a Checklist Template</p>
                 <img
-                  src='/cross-svgrepo-com.svg'
+                  src="/cross-svgrepo-com.svg"
                   onClick={() => setIsOpen(false)}
-                  className='w-8 h-8'
-                  alt='Close'
+                  className="w-8 h-8"
+                  alt="Close"
                 />
               </div>
 
               {/* Main content layout */}
-              <div className='flex flex-col md:flex-row md:h-auto'>
+              <div className="flex flex-col md:flex-row md:h-auto">
                 {/* Left Sidebar */}
-                <div className='w-full md:w-1/3 p-4 border border-r'>
-                  <div className='border rounded-lg flex bg-white py-2 mb-6'>
+                <div className="w-full md:w-1/3 p-4 border border-r">
+                  <div className="border rounded-lg flex bg-white py-2 mb-6">
                     <img
-                      src='/search-svgrepo-com.svg'
-                      className='w-5 h-5 ms-4'
-                      alt='Search'
+                      src="/search-svgrepo-com.svg"
+                      className="w-5 h-5 ms-4"
+                      alt="Search"
                     />
                     <input
-                      type='search'
-                      name=''
-                      className='bg-transparent flex-grow'
-                      placeholder='Search...'
+                      type="search"
+                      name=""
+                      className="bg-transparent flex-grow"
+                      placeholder="Search..."
                     />
                   </div>
 
-                  <h2 className='text-lg font-bold mb-4'>Choose a Checklist</h2>
+                  <h2 className="text-lg font-bold mb-4">Choose a Checklist</h2>
                   <ol>
-                    {Object.keys(checklistData).map(city => (
+                    {Object.keys(checklistData).map((city) => (
                       <div key={city}>
                         <li
                           className={`p-2 cursor-pointer hover:bg-gray-100 flex justify-between items-center ${
@@ -123,9 +110,9 @@ export const ChecklistTemplateModal = ({
                         >
                           {city} - Checklist
                           <img
-                            src='/edit-3-svgrepo-com.svg'
-                            className='w-5 h-5'
-                            alt='Edit'
+                            src="/edit-3-svgrepo-com.svg"
+                            className="w-5 h-5"
+                            alt="Edit"
                           />
                         </li>
                       </div>
@@ -134,16 +121,16 @@ export const ChecklistTemplateModal = ({
                 </div>
 
                 {/* Right Content (fixed width to avoid resizing) */}
-                <div className='flex-grow p-4 bg-white md:rounded-r-lg'>
-                  <h2 className='text-xl font-semibold mb-4'>
+                <div className="flex-grow p-4 bg-white md:rounded-r-lg">
+                  <h2 className="text-xl font-semibold mb-4">
                     {selectedChecklist} - Active Listing
                   </h2>
-                  <div className='max-h-[300px] md:max-h-[400px] lg:max-h-[500px] overflow-auto'>
-                    <ol className='list-decimal pl-6 space-y-2'>
+                  <div className="max-h-[300px] md:max-h-[400px] lg:max-h-[500px] overflow-auto">
+                    <ol className="list-decimal pl-6 space-y-2">
                       {checklistData[selectedChecklist].map((step, index) => (
                         <li
                           key={index}
-                          className='text-sm md:text-base hover:bg-gray-300'
+                          className="text-sm md:text-base hover:bg-gray-300"
                         >
                           {step}
                         </li>
@@ -154,18 +141,18 @@ export const ChecklistTemplateModal = ({
               </div>
 
               {/* Modal Footer */}
-              <div className='flex justify-end items-center pe-6 pb-6 border border-t'>
-                <div className='mt-4'>
+              <div className="flex justify-end items-center pe-6 pb-6 border border-t">
+                <div className="mt-4">
                   <button
-                    className='bg-gray-200 py-2 px-3 rounded-lg text-gray-800'
+                    className="bg-gray-200 py-2 px-3 rounded-lg text-gray-800"
                     onClick={() => setIsOpen(false)}
                   >
                     Cancel
                   </button>
                 </div>
-                <div className='mt-4 ms-6'>
+                <div className="mt-4 ms-6">
                   <button
-                    className='bg-[#616161] py-2 px-3 rounded-lg text-white'
+                    className="bg-[#616161] py-2 px-3 rounded-lg text-white"
                     onClick={handleConfirm}
                   >
                     Confirm

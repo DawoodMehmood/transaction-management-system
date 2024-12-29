@@ -21,7 +21,7 @@ a:hover {
 .arrow-steps .step {
   font-size: 14px;
   text-align: center;
-  color: #FFFFFF;
+  color: #ffffff;
   cursor: default;
   margin: 0 3px 10px 0px;
 
@@ -39,7 +39,7 @@ a:hover {
 
 .arrow-steps .step:after,
 .arrow-steps .step:before {
-  content: " ";
+  content: ' ';
   position: absolute;
   top: 0;
   right: -16px;
@@ -75,7 +75,7 @@ a:hover {
 .arrow-steps .step span:before {
   opacity: 0;
   /* color: #9094A5; */
-  content: "✔";
+  content: '✔';
   position: absolute;
   top: -2px;
   left: -20px;
@@ -98,7 +98,6 @@ a:hover {
   border-left: 17px solid #616161;
 }
 
-
 .arrow-steps .step.done {
   background-color: #28a745;
   /* Green color for passed steps */
@@ -107,9 +106,7 @@ a:hover {
 
 .arrow-steps .step.done:after {
   border-left: 17px solid #28a745;
-
 }
-
 
 /* Modal styles */
 .modal-overlay {
@@ -147,11 +144,11 @@ a:hover {
 }
 
 .modal-btn.cancel {
-  background-color: #E0E0E0;
+  background-color: #e0e0e0;
   color: #333;
 }
 
 .modal-btn.confirm {
-  background-color: #bdc0cdde;
+  background-color: #3f455cde;
   color: white;
 }

@@ -37,13 +37,14 @@ const PORT = process.env.PORT || 3003;
 pool.connect()
     .then(client => {
         console.log('Connected to PostgreSQL database successfully.');
+        console.log('Connection details:', pool.options);
 
         // Set search path to tkg schema
         return client.query("SET search_path TO tkg;")
             .then(() => {
                 console.log('Search path set to tkg schema.');
                 client.release(); // Release the client back to the pool
-                app.listen(PORT, () => {
+                app.listen(PORT, '0.0.0.0', () => {
                     console.log(`Server is running on port ${PORT}`);
                 });
             });

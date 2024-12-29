@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { getServerUrl } from '../../utility/getServerUrl';
+import { showErrorToast, showSuccessToast } from '../../toastConfig';
 
 // Helper function to format dates
-const formatDate = date =>
+const formatDate = (date) =>
   date.toLocaleDateString('en-US', {
     day: '2-digit',
     month: 'short',
@@ -12,19 +13,18 @@ const formatDate = date =>
 // API call to fetch tasks
 export const fetchTasks = async () => {
   try {
-    const response = await fetch(
-      'https://api.tkglisting.com/api/dates/calendar'
-    );
+    const response = await fetch(`${getServerUrl()}/api/dates/calendar`);
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
     const data = await response.json();
-    return data.transactions.flatMap(transaction =>
-      transaction.dates.map(date => ({
+    return data.transactions.flatMap((transaction) =>
+      transaction.dates.map((date) => ({
         transactionId: transaction.transaction_id,
         transactionName: transaction.transaction_name,
         stageId: date.stage_id,
         taskId: date.task.task_id,
+        transactionDetailId: date.task.transaction_detail_id,
         address: `${transaction.address}, ${transaction.city}, ${transaction.state}`,
         taskName: date.task.task_name,
         enteredDate: new Date(date.entered_date),
@@ -39,14 +39,14 @@ export const fetchTasks = async () => {
 
 // Function to update task status
 const updateTaskStatus = async (
-  taskId,
+  transactionDetailId,
   transactionId,
   stageId,
   reloadTasks,
-  setLoadingTaskId
+  setLoadingTransactionDetailId
 ) => {
   try {
-    setLoadingTaskId(taskId); // Show loader for this task
+    setLoadingTransactionDetailId(transactionDetailId); // Show loader for this task
 
     const requestBody = {
       transaction_id: transactionId,
@@ -55,7 +55,7 @@ const updateTaskStatus = async (
     };
 
     const response = await fetch(
-      `https://api.tkglisting.com/api/transactions/${taskId}/status`,
+      `${getServerUrl()}/api/transactions/${transactionDetailId}/status`,
       {
         method: 'PUT',
         headers: {
@@ -66,7 +66,7 @@ const updateTaskStatus = async (
     );
 
     if (response.ok) {
-      toast.success('Task status updated successfully!');
+      showSuccessToast('Task status updated successfully!');
       reloadTasks(true); // Call reloadTasks with 'true' on success
     } else {
       const errorMessage = await response.text();
@@ -75,9 +75,9 @@ const updateTaskStatus = async (
     }
   } catch (error) {
     console.error('Error updating task status:', error);
-    toast.error('Error updating task status');
+    showErrorToast('Error updating task status');
   } finally {
-    setLoadingTaskId(null); // Hide loader after update
+    setLoadingTransactionDetailId(null); // Hide loader after update
   }
 };
 
@@ -86,47 +86,46 @@ const TaskTable = ({
   tasks,
   showCheckbox = true,
   onTaskStatusChange,
-  loadingTaskId,
+  loadingTransactionDetailId,
 }) => (
   <>
-    <ToastContainer />
-    <table className='w-full border border-gray-200 rounded-lg'>
+    <table className="w-full border border-gray-200 rounded-lg">
       <thead>
-        <tr className='border-b text-nowrap'>
-          <th className='px-4 py-2 text-left text-gray-600'>Transaction</th>
-          <th className='px-4 py-2 text-left text-gray-600'>Address</th>
-          <th className='px-4 py-2 text-left text-gray-600'>
+        <tr className="border-b text-nowrap">
+          <th className="px-4 py-2 text-left text-gray-600">Transaction</th>
+          <th className="px-4 py-2 text-left text-gray-600">Address</th>
+          <th className="px-4 py-2 text-left text-gray-600">
             Task Description
           </th>
-          <th className='px-4 py-2 text-left text-gray-600'>Task Days</th>
+          <th className="px-4 py-2 text-left text-gray-600">Task Days</th>
         </tr>
       </thead>
       <tbody>
         {tasks.map((task, index) => (
           <tr
             key={index}
-            className='border-b text-nowrap hover:bg-gray-50 transition duration-150 ease-in-out'
+            className="border-b text-nowrap hover:bg-gray-50 transition duration-150 ease-in-out"
           >
-            <td className='px-4 py-3 flex object-center items-center'>
+            <td className="px-4 py-3 flex object-center items-center">
               {showCheckbox && (
-                <div className='mr-2 relative'>
+                <div className="mr-2 relative">
                   <input
-                    type='checkbox'
+                    type="checkbox"
                     onChange={() => onTaskStatusChange(task)}
                     disabled={task.taskStatus === 'Completed'}
                     checked={task.taskStatus === 'Completed'}
-                    className='appearance-none w-4 h-4 border border-gray-400 rounded checked:bg-blue-600 checked:border-transparent'
+                    className="appearance-none w-4 h-4 border border-gray-400 rounded checked:bg-blue-600 checked:border-transparent"
                   />
-                  {loadingTaskId === task.taskId && (
-                    <div className='animate-spin absolute -top-0 left-5 rounded-full h-4 w-4 border-t-2 border-gray-600'></div>
+                  {loadingTransactionDetailId === task.transactionDetailId && (
+                    <div className="animate-spin absolute -top-0 left-5 rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
                   )}
                 </div>
               )}
-              <span className='ms-4'>{task.transactionName}</span>
+              <span className="ms-4">{task.transactionName}</span>
             </td>
-            <td className='px-4 py-3'>{task.address}</td>
-            <td className='px-4 py-3'>{task.taskName}</td>
-            <td className='px-4 py-3 text-nowrap'>
+            <td className="px-4 py-3">{task.address}</td>
+            <td className="px-4 py-3">{task.taskName}</td>
+            <td className="px-4 py-3 text-nowrap">
               {formatDate(task.enteredDate)}
             </td>
           </tr>
@@ -139,7 +138,7 @@ const TaskTable = ({
 // TaskCategory Component
 const TaskCategory = ({ filterTasks, showCheckbox, reloadTasks }) => {
   const [tasks, setTasks] = useState([]);
-  const [loadingTaskId, setLoadingTaskId] = useState(null);
+  const [loadingTransactionDetailId, setLoadingTransactionDetailId] = useState(null);
 
   const fetchAndSetTasks = async (shouldReload = false) => {
     if (shouldReload) {
@@ -153,13 +152,13 @@ const TaskCategory = ({ filterTasks, showCheckbox, reloadTasks }) => {
     fetchAndSetTasks();
   }, []);
 
-  const handleStatusChange = task => {
+  const handleStatusChange = (task) => {
     updateTaskStatus(
-      task.taskId,
+      task.transactionDetailId,
       task.transactionId,
       task.stageId,
       fetchAndSetTasks,
-      setLoadingTaskId
+      setLoadingTransactionDetailId
     );
   };
 
@@ -168,7 +167,7 @@ const TaskCategory = ({ filterTasks, showCheckbox, reloadTasks }) => {
       tasks={tasks}
       showCheckbox={showCheckbox}
       onTaskStatusChange={handleStatusChange}
-      loadingTaskId={loadingTaskId}
+      loadingTransactionDetailId={loadingTransactionDetailId}
     />
   );
 };
@@ -176,17 +175,19 @@ const TaskCategory = ({ filterTasks, showCheckbox, reloadTasks }) => {
 // Task Components with Different Filters
 export const ScheduledTasks = ({ reloadTasks }) => (
   <TaskCategory
-    filterTasks={data => data.filter(task => task.taskStatus !== 'Completed')}
+    filterTasks={(data) =>
+      data.filter((task) => task.taskStatus !== 'Completed')
+    }
     showCheckbox
     reloadTasks={reloadTasks}
   />
 );
 
-export const TodayTasks = reloadTasks => (
+export const TodayTasks = (reloadTasks) => (
   <TaskCategory
-    filterTasks={data =>
+    filterTasks={(data) =>
       data.filter(
-        task =>
+        (task) =>
           task.enteredDate.toDateString() === new Date().toDateString() &&
           task.taskStatus !== 'Completed'
       )
@@ -197,9 +198,9 @@ export const TodayTasks = reloadTasks => (
 );
 
 // Exported Components with reloadTasks behavior
-export const ThisWeekTasks = reloadTasks => (
+export const ThisWeekTasks = (reloadTasks) => (
   <TaskCategory
-    filterTasks={data => {
+    filterTasks={(data) => {
       const today = new Date();
       const startOfWeek = new Date(today);
       startOfWeek.setDate(today.getDate() - today.getDay());
@@ -207,7 +208,7 @@ export const ThisWeekTasks = reloadTasks => (
       endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
 
       return data.filter(
-        task =>
+        (task) =>
           task.enteredDate >= startOfWeek &&
           task.enteredDate <= endOfWeek &&
           task.taskStatus !== 'Completed'
@@ -218,15 +219,15 @@ export const ThisWeekTasks = reloadTasks => (
   />
 );
 
-export const ThisMonthTasks = reloadTasks => (
+export const ThisMonthTasks = (reloadTasks) => (
   <TaskCategory
-    filterTasks={data => {
+    filterTasks={(data) => {
       const today = new Date();
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
       return data.filter(
-        task =>
+        (task) =>
           task.enteredDate >= startOfMonth &&
           task.enteredDate <= endOfMonth &&
           task.taskStatus !== 'Completed'
@@ -237,11 +238,12 @@ export const ThisMonthTasks = reloadTasks => (
   />
 );
 
-export const OverdueTasks = reloadTasks => (
+export const OverdueTasks = (reloadTasks) => (
   <TaskCategory
-    filterTasks={data =>
+    filterTasks={(data) =>
       data.filter(
-        task => task.enteredDate < new Date() && task.taskStatus !== 'Completed'
+        (task) =>
+          task.enteredDate < new Date() && task.taskStatus !== 'Completed'
       )
     }
     showCheckbox
@@ -249,9 +251,11 @@ export const OverdueTasks = reloadTasks => (
   />
 );
 
-export const FinishedTasks = reloadTasks => (
+export const FinishedTasks = (reloadTasks) => (
   <TaskCategory
-    filterTasks={data => data.filter(task => task.taskStatus === 'Completed')}
+    filterTasks={(data) =>
+      data.filter((task) => task.taskStatus === 'Completed')
+    }
     showCheckbox={false}
     reloadTasks={reloadTasks}
   />

@@ -13,6 +13,7 @@ const NavBar = () => {
     // { name: 'People', dropdown: true },
     { name: 'Transactions', dropdown: false, path: '/Transactions' },
     // { name: 'Listings', dropdown: false, path: '/listings' },
+    { name: 'Systems', dropdown: false },
     { name: 'Calendars', dropdown: false, path: '/calendars' },
     // { name: 'Marketing', dropdown: false },
     // { name: 'Reporting', dropdown: false },
@@ -25,7 +26,7 @@ const NavBar = () => {
   useEffect(() => {
     const currentPath = location.pathname;
 
-    const matchedItem = navItems.find(item => item.path === currentPath);
+    const matchedItem = navItems.find((item) => item.path === currentPath);
 
     if (matchedItem) {
       setActiveItem(matchedItem.name);
@@ -34,23 +35,23 @@ const NavBar = () => {
     }
   }, [location.pathname]);
 
-  const handleNavClick = item => {
+  const handleNavClick = (item) => {
     setActiveItem(item.name);
     if (item.name === 'People') setIsPeopleDropdownOpen(!isPeopleDropdownOpen);
     else setIsPeopleDropdownOpen(false);
   };
 
   return (
-    <nav className='bg-white shadow-md p-4 flex justify-between items-center'>
+    <nav className="bg-white shadow-md p-4 flex justify-between items-center">
       {/* Left Section - Logo and Nav Items */}
-      <div className='flex items-center space-x-8'>
+      <div className="flex items-center space-x-8">
         {/* Logo */}
-        <div className='text-xl font-bold'>Logo</div>
+        <div className="text-xl font-bold">Logo</div>
 
         {/* Nav Items */}
-        <div className='hidden md:flex items-center space-x-6'>
-          {navItems.map(item => (
-            <div key={item.name} className='relative'>
+        <div className="hidden md:flex items-center space-x-6">
+          {navItems.map((item) => (
+            <div key={item.name} className="relative">
               {item.path ? (
                 <NavLink
                   to={item.path}
@@ -65,7 +66,7 @@ const NavBar = () => {
 
                   {/* Red Dot on Listings */}
                   {item.name === 'Listings' && (
-                    <span className='absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 h-2 w-2 rounded-full'></span>
+                    <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 h-2 w-2 rounded-full"></span>
                   )}
                 </NavLink>
               ) : (
@@ -85,16 +86,16 @@ const NavBar = () => {
                       className={`w-4 h-4 ml-1 transform transition-transform duration-300 ${
                         isPeopleDropdownOpen ? 'rotate-180' : ''
                       }`}
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                      xmlns='http://www.w3.org/2000/svg'
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
                     >
                       <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                         strokeWidth={2}
-                        d='M19 9l-7 7-7-7'
+                        d="M19 9l-7 7-7-7"
                       />
                     </svg>
                   )}
@@ -106,16 +107,16 @@ const NavBar = () => {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className='absolute left-0 mt-2 w-40 bg-white shadow-lg rounded-md'
+                  className="absolute left-0 mt-2 w-40 bg-white shadow-lg rounded-md"
                 >
-                  <ul className='py-2'>
-                    <li className='px-4 py-2 hover:bg-gray-100 cursor-pointer'>
+                  <ul className="py-2">
+                    <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                       Sub People 1
                     </li>
-                    <li className='px-4 py-2 hover:bg-gray-100 cursor-pointer'>
+                    <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                       Sub People 2
                     </li>
-                    <li className='px-4 py-2 hover:bg-gray-100 cursor-pointer'>
+                    <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                       Sub People 3
                     </li>
                   </ul>
@@ -127,22 +128,22 @@ const NavBar = () => {
       </div>
 
       {/* Right Section - Icons */}
-      <div className='flex items-center space-x-4'>
+      <div className="flex items-center space-x-4">
         {/* <SearchIcon className='w-6 h-6 text-gray-500 hover:text-gray-700 cursor-pointer' /> */}
         {/* <ChatIcon className='w-6 h-6 text-gray-500 hover:text-gray-700 cursor-pointer' /> */}
         {/* <BellIcon className='w-6 h-6 text-gray-500 hover:text-gray-700 cursor-pointer' />
         <QuestionMarkCircleIcon className='w-6 h-6 text-gray-500 hover:text-gray-700 cursor-pointer' /> */}
-        <UserCircleIcon className='w-8 h-8 text-gray-500 hover:text-gray-700 cursor-pointer' />
+        <UserCircleIcon className="w-8 h-8 text-gray-500 hover:text-gray-700 cursor-pointer" />
 
         {/* Hamburger Icon for Mobile */}
         <button
-          className='md:hidden block'
+          className="md:hidden block"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           {isMobileMenuOpen ? (
-            <XIcon className='w-6 h-6 text-gray-500' />
+            <XIcon className="w-6 h-6 text-gray-500" />
           ) : (
-            <MenuIcon className='w-6 h-6 text-gray-500' />
+            <MenuIcon className="w-6 h-6 text-gray-500" />
           )}
         </button>
       </div>
@@ -152,10 +153,10 @@ const NavBar = () => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className='md:hidden absolute z-50 top-16 left-0 w-full bg-white shadow-lg'
+          className="md:hidden absolute z-50 top-16 left-0 w-full bg-white shadow-lg"
         >
-          <ul className='flex flex-col items-start p-4'>
-            {navItems.map(item => (
+          <ul className="flex flex-col items-start p-4">
+            {navItems.map((item) => (
               <li
                 key={item.name}
                 className={`py-2 flex items-center justify-between w-full ${
@@ -167,19 +168,19 @@ const NavBar = () => {
                 {item.path ? (
                   <NavLink
                     to={item.path}
-                    className='w-full text-left flex items-center'
+                    className="w-full text-left flex items-center"
                     onClick={() => handleNavClick(item)}
                   >
                     {item.name}
 
                     {/* Red Dot on Listings */}
                     {item.name === 'Listings' && (
-                      <span className='ml-2 bg-red-500 h-2 w-2 rounded-full inline-block'></span>
+                      <span className="ml-2 bg-red-500 h-2 w-2 rounded-full inline-block"></span>
                     )}
                   </NavLink>
                 ) : (
                   <button
-                    className='w-full text-left flex items-center'
+                    className="w-full text-left flex items-center"
                     onClick={() => handleNavClick(item)}
                   >
                     {item.name}

@@ -1,18 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { getServerUrl } from '../../utility/getServerUrl';
+import { showErrorToast, showSuccessToast } from '../../toastConfig';
 
 export const AllCalenderTasks = ({ setupdatedLoading }) => {
   const [tasksByStage, setTasksByStage] = useState({});
-  const [loadingTaskId, setLoadingTaskId] = useState(null);
-  const [loading, setLoading] = useState();
+  const [loadingTransactionDetailId, setLoadingTransactionDetailId] = useState(null);
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const response = await fetch(
-          'https://api.tkglisting.com/api/dates/calendar'
-        );
+        const response = await fetch(`${getServerUrl()}/api/dates/calendar`);
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
@@ -21,8 +18,8 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
         if (data && data.transactions) {
           // Group tasks by stage_id
           const tasksByStage = data.transactions
-            .flatMap(transaction =>
-              transaction.dates.map(date => ({
+            .flatMap((transaction) =>
+              transaction.dates.map((date) => ({
                 transactionName: transaction.transaction_name,
                 transaction_id: transaction.transaction_id,
                 address: transaction.address,
@@ -51,11 +48,11 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
     fetchTasks();
   }, []);
 
-  const updateTaskStatus = async task => {
-    setLoadingTaskId(task.task_id);
+  const updateTaskStatus = async (task) => {
+    setLoadingTransactionDetailId(task.transaction_detail_id);
     try {
       const response = await fetch(
-        `https://api.tkglisting.com/api/transactions/${task.task_id}/status`,
+        `${getServerUrl()}/api/transactions/${task.transaction_detail_id}/status`,
         {
           method: 'PUT',
           headers: {
@@ -74,11 +71,11 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
         const result = await response.json();
         console.log(result);
         setupdatedLoading(true);
-        toast.success('Task status updated successfully!');
-        setTasksByStage(prevTasks => {
+        showSuccessToast('Task status updated successfully!');
+        setTasksByStage((prevTasks) => {
           const updatedTasks = { ...prevTasks };
           updatedTasks[task.stage_id] = updatedTasks[task.stage_id].filter(
-            t => t.task_id !== task.task_id
+            (t) => t.transaction_detail_id !== task.transaction_detail_id
           );
           return updatedTasks;
         });
@@ -87,13 +84,13 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
       }
     } catch (error) {
       console.error('Error updating task status:', error);
-      toast.error('Error updating task status');
+      showErrorToast('Error updating task status');
     } finally {
-      setLoadingTaskId(null);
+      setLoadingTransactionDetailId(null);
     }
   };
 
-  const formatDate = date => {
+  const formatDate = (date) => {
     return date
       ? date.toLocaleDateString('en-US', {
           month: 'short',
@@ -104,17 +101,16 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
   };
 
   return (
-    <div className='overflow-x-auto bg-white'>
-      <ToastContainer />
-      <table className='w-full border border-gray-200 rounded-lg'>
+    <div className="overflow-x-auto bg-white">
+      <table className="w-full border border-gray-200 rounded-lg">
         <thead>
-          <tr className='border-b'>
-            <th className='px-4 py-2 text-left text-gray-600'>Transaction</th>
-            <th className='px-4 py-2 text-left text-gray-600'>Address</th>
-            <th className='px-4 py-2 text-left text-gray-600'>
+          <tr className="border-b">
+            <th className="px-4 py-2 text-left text-gray-600">Transaction</th>
+            <th className="px-4 py-2 text-left text-gray-600">Address</th>
+            <th className="px-4 py-2 text-left text-gray-600">
               Task Description
             </th>
-            <th className='px-4 py-2 text-left text-gray-600'>Task Days</th>
+            <th className="px-4 py-2 text-left text-gray-600">Task Days</th>
           </tr>
         </thead>
         {/* <tbody>
@@ -124,7 +120,7 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
                 (task, index) =>
                   task.task_status !== 'Completed' && (
                     <tr
-                      key={`${stageId}-${task.task_id}-${index}`} // Add index to ensure uniqueness
+                      key={`${stageId}-${task.transaction_detail_id}-${index}`} // Add index to ensure uniqueness
                       className='border-b text-nowrap hover:bg-gray-50 transition duration-150 ease-in-out'
                     >
                       <td className='px-4 py-3 flex items-center'>
@@ -135,7 +131,7 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
                           onChange={() => updateTaskStatus(task)}
                           disabled={task.task_status === 'Completed'}
                         />
-                        {loadingTaskId === task.task_id && (
+                        {loadingTransactionDetailId === task.transaction_detail_id && (
                           <div className='animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600'></div>
                         )}
                         <span className='ml-2'>{task.transactionName}</span>
@@ -156,31 +152,31 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
           ))}
         </tbody> */}
         <tbody>
-          {Object.keys(tasksByStage).map(stageId => (
+          {Object.keys(tasksByStage).map((stageId) => (
             <React.Fragment key={stageId}>
               {tasksByStage[stageId].map(
-                task =>
+                (task) =>
                   task.task_status !== 'Completed' && (
                     <tr
-                      key={task.task_id}
-                      className='border-b text-nowrap hover:bg-gray-50 transition duration-150 ease-in-out'
+                      key={task.transaction_detail_id}
+                      className="border-b text-nowrap hover:bg-gray-50 transition duration-150 ease-in-out"
                     >
-                      <td className='px-4 py-3 flex items-center'>
+                      <td className="px-4 py-3 flex items-center">
                         <input
-                          type='checkbox'
-                          className='mr-2'
+                          type="checkbox"
+                          className="mr-2"
                           checked={task.task_status === 'Completed'}
                           onChange={() => updateTaskStatus(task)}
                           disabled={task.task_status === 'Completed'}
                         />
-                        {loadingTaskId === task.task_id && (
-                          <div className='animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600'></div>
+                        {loadingTransactionDetailId === task.transaction_detail_id && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
                         )}
-                        <span className='ml-2'>{task.transactionName}</span>
+                        <span className="ml-2">{task.transactionName}</span>
                       </td>
-                      <td className='px-4 py-3'>{task.address}</td>
-                      <td className='px-4 py-3'>{task.taskName}</td>
-                      <td className='px-4 py-3'>
+                      <td className="px-4 py-3">{task.address}</td>
+                      <td className="px-4 py-3">{task.taskName}</td>
+                      <td className="px-4 py-3">
                         {formatDate(task.enteredDate)}
                       </td>
                     </tr>
@@ -188,7 +184,7 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
               )}
               {/* Render a space between stages */}
               <tr>
-                <td colSpan='4' className='py-2'></td>
+                <td colSpan="4" className="py-2"></td>
               </tr>
             </React.Fragment>
           ))}

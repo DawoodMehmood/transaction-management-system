@@ -13,40 +13,39 @@ const validDateNames = [
 
 exports.addOrUpdateDates = async (req, res) => {
     const { state_id, dates, transaction_id, stage_id, created_by } = req.body;
-
+  
     if (!state_id || !created_by || !transaction_id || !stage_id || !Array.isArray(dates) || dates.length === 0) {
-        return res.status(400).json({ error: 'All fields are required, and dates must be an array.' });
+      return res.status(400).json({ error: 'All fields are required, and dates must be an array.' });
     }
-
+  
     try {
-        const queries = dates.map(({ date_id, date_name, date_value }) => ({
-            text: `
-                INSERT INTO tkg.dates (state_id, date_id, date_name, entered_date, created_date, created_by, transaction_id, stage_id, updated_date, updated_by) 
-                VALUES ($1, $2, $3, $4::DATE, CURRENT_TIMESTAMP, $5, $6, $7, CURRENT_TIMESTAMP, $5)
-                ON CONFLICT (state_id, date_name, transaction_id, stage_id) 
-                DO UPDATE SET 
-                    entered_date = $4::DATE,
-                    updated_date = NOW(), 
-                    updated_by = $5 
-                RETURNING *;
-            `,
-            values: [state_id, date_id, date_name, date_value, created_by, transaction_id, stage_id]
-        }));
-
-        const results = await Promise.all(queries.map(query => pool.query(query.text, query.values)));
-        const insertedOrUpdatedDates = results.map(result => result.rows[0]);
-
-        res.status(201).json({
-            message: 'Dates added or updated successfully.',
-            dates: insertedOrUpdatedDates
-        });
+      const queries = dates.map(({ date_id, date_name, date_value }) => ({
+        text: `
+          INSERT INTO tkg.dates (state_id, date_id, date_name, entered_date, created_date, created_by, transaction_id, stage_id, updated_date, updated_by) 
+          VALUES ($1, $2, $3, $4::DATE, CURRENT_TIMESTAMP, $5, $6, $7, CURRENT_TIMESTAMP, $5)
+          ON CONFLICT (state_id, date_name, transaction_id, stage_id) 
+          DO UPDATE SET 
+              entered_date = $4::DATE,
+              updated_date = NOW(), 
+              updated_by = $5 
+          RETURNING *;
+        `,
+        values: [state_id, date_id, date_name, date_value, created_by, transaction_id, stage_id],
+      }));
+  
+      const results = await Promise.all(queries.map((query) => pool.query(query.text, query.values)));
+      const insertedOrUpdatedDates = results.map((result) => result.rows[0]);
+  
+      res.status(201).json({
+        message: 'Dates added or updated successfully.',
+        dates: insertedOrUpdatedDates,
+      });
     } catch (error) {
-        console.error('Error adding or updating dates:', error);
-        res.status(500).json({ error: 'Database error' });
+      console.error('Error adding or updating dates:', error);
+      res.status(500).json({ error: 'Database error' });
     }
-};
-
-
+  };
+  
 
 exports.getTransactionDates = async (req, res) => {
     const { transaction_id } = req.params;
@@ -114,6 +113,68 @@ exports.getTransactionDates = async (req, res) => {
         res.status(500).json({ error: 'Database error' });
     }
 };
+
+exports.getTransactionDatesByStage = async (req, res) => {
+    const { transaction_id, stage_id } = req.params;
+
+    try {
+        const query = `
+            SELECT 
+                d.state_id, 
+                d.date_name, 
+                d.entered_date, 
+                d.created_date, 
+                d.created_by, 
+                d.updated_date, 
+                d.updated_by, 
+                d.transaction_id, 
+                d.stage_id, 
+                s.state, 
+                st.stage_name
+            FROM 
+                tkg.dates d
+            LEFT JOIN 
+                tkg.state s ON d.state_id = s.state
+            LEFT JOIN 
+                tkg.stages st ON d.stage_id = st.stage_id
+            WHERE 
+                d.transaction_id = $1 AND d.stage_id = $2
+            ORDER BY 
+                d.date_name;
+        `;
+
+        const result = await pool.query(query, [transaction_id, stage_id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: 'No dates found for the given transaction ID and stage ID.'
+            });
+        }
+
+        // Format the dates for the response
+        const dates = result.rows.map((row) => ({
+            date_name: row.date_name,
+            entered_date: row.entered_date,
+            created_date: row.created_date,
+            created_by: row.created_by,
+            updated_date: row.updated_date,
+            updated_by: row.updated_by,
+        }));
+
+        res.status(200).json({
+            message: 'Dates retrieved successfully.',
+            transaction_id,
+            stage_id,
+            stage_name: result.rows[0].stage_name, // Assuming all rows share the same stage_name
+            dates,
+        });
+    } catch (error) {
+        console.error('Error fetching transaction dates by stage:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+};
+
+
 // Retrieve all transactions with calendar details
 exports.getAllTransactionsCalendar = async (req, res) => {
     try {
@@ -131,6 +192,7 @@ exports.getAllTransactionsCalendar = async (req, res) => {
                 d.date_name, 
                 d.entered_date, 
                 td.task_id, 
+                td.transaction_detail_id,
                 td.task_name, 
                 td.task_status,
                 td.stage_id  -- Add stage_id here
@@ -162,7 +224,7 @@ exports.getAllTransactionsCalendar = async (req, res) => {
         // Group transactions by transaction_id
         const groupedTransactions = result.rows.reduce((acc, row) => {
             const { transaction_id, transaction_name, address1, address2, city, state, zip, list_price, state_name } = row;
-            const { date_name, entered_date, task_id, task_name, task_status, stage_id } = row;
+            const { date_name, entered_date, task_id, task_name, task_status, stage_id, transaction_detail_id } = row;
 
             // Initialize the transaction group if it doesn't exist
             if (!acc[transaction_id]) {
@@ -188,6 +250,7 @@ exports.getAllTransactionsCalendar = async (req, res) => {
                     task_id,
                     task_name,
                     task_status,
+                    transaction_detail_id
                 },
             });
 

@@ -2,8 +2,8 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { getServerUrl } from '../../utility/getServerUrl';
+import { showErrorToast, showSuccessToast } from '../../toastConfig';
 
 const LoginSignUpScreen = () => {
   const [formData, setFormData] = useState({
@@ -17,7 +17,7 @@ const LoginSignUpScreen = () => {
   const navigate = useNavigate();
 
   // Handle input change
-  const handleChange = e => {
+  const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
@@ -25,16 +25,13 @@ const LoginSignUpScreen = () => {
   const handleLogin = async () => {
     const { email, password } = formData;
     try {
-      const response = await fetch(
-        'https://api.tkglisting.com/api/auth/login',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await fetch(`${getServerUrl()}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
       console.log(response);
 
@@ -42,14 +39,14 @@ const LoginSignUpScreen = () => {
       console.log(data);
 
       if (response.ok) {
-        toast.success('Login successful!');
+        showSuccessToast('Login successful!');
         localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/Transactions'); // Redirect to Transactions on success
       } else {
         throw new Error(data.message || 'Login failed');
       }
     } catch (error) {
-      toast.error(error.message || 'Login failed. Please try again.');
+      showErrorToast(error.message || 'Login failed. Please try again.');
     }
   };
 
@@ -58,32 +55,29 @@ const LoginSignUpScreen = () => {
     const { username, email, password, confirmPassword } = formData;
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match!');
+      showErrorToast('Passwords do not match!');
       return;
     }
 
     try {
-      const response = await fetch(
-        'https://api.tkglisting.com/api/auth/signup',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ username, email, password, confirmPassword }),
-        }
-      );
+      const response = await fetch(`${getServerUrl()}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, email, password, confirmPassword }),
+      });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('Signup successful!');
+        showSuccessToast('Signup successful!');
         navigate('/'); // Redirect to homepage on success
       } else {
         throw new Error(data.message || 'Signup failed');
       }
     } catch (error) {
-      toast.error(error.message || 'Signup failed. Please try again.');
+      showErrorToast('Signup failed. Please try again.');
     }
   };
 
@@ -98,76 +92,75 @@ const LoginSignUpScreen = () => {
   };
 
   return (
-    <div className='flex items-center justify-center min-h-screen bg-[#FFFFFF]'>
-      <ToastContainer />
+    <div className="flex items-center justify-center min-h-screen bg-[#FFFFFF]">
       <motion.div
-        className='bg-gray-300 rounded-lg shadow-lg mx-2 md:mx-0 p-8 max-w-sm w-full'
+        className="bg-gray-300 rounded-lg shadow-lg mx-2 md:mx-0 p-8 max-w-sm w-full"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <h2 className='text-center text-2xl font-bold mb-6 text-gray-700'>
+        <h2 className="text-center text-2xl font-bold mb-6 text-gray-700">
           {isLogin ? 'Login' : 'Sign Up'}
         </h2>
 
         <form>
           {!isLogin && (
-            <div className='mb-4'>
-              <label className='block text-gray-700 mb-2' htmlFor='username'>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2" htmlFor="username">
                 Username
               </label>
               <input
-                type='text'
-                id='username'
-                className='w-full p-2 border border-grey-800 rounded'
-                placeholder='Enter your username'
+                type="text"
+                id="username"
+                className="w-full p-2 border border-grey-800 rounded"
+                placeholder="Enter your username"
                 value={formData.username}
                 onChange={handleChange}
                 required={!isLogin}
               />
             </div>
           )}
-          <div className='mb-4'>
-            <label className='block text-gray-700 mb-2' htmlFor='email'>
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2" htmlFor="email">
               Email
             </label>
             <input
-              type='email'
-              id='email'
-              className='w-full p-2 border border-gray-300 rounded'
-              placeholder='Enter your email'
+              type="email"
+              id="email"
+              className="w-full p-2 border border-gray-300 rounded"
+              placeholder="Enter your email"
               value={formData.email}
               onChange={handleChange}
               required
             />
           </div>
-          <div className='mb-4'>
-            <label className='block text-gray-700 mb-2' htmlFor='password'>
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2" htmlFor="password">
               Password
             </label>
             <input
-              type='password'
-              id='password'
-              className='w-full p-2 border border-gray-300 rounded'
-              placeholder='Enter your password'
+              type="password"
+              id="password"
+              className="w-full p-2 border border-gray-300 rounded"
+              placeholder="Enter your password"
               value={formData.password}
               onChange={handleChange}
               required
             />
           </div>
           {!isLogin && (
-            <div className='mb-4'>
+            <div className="mb-4">
               <label
-                className='block text-gray-700 mb-2'
-                htmlFor='confirmPassword' // Updated id to match state key
+                className="block text-gray-700 mb-2"
+                htmlFor="confirmPassword" // Updated id to match state key
               >
                 Confirm Password
               </label>
               <input
-                type='password'
-                id='confirmPassword' // Corrected the id here
-                className='w-full p-2 border border-gray-300 rounded'
-                placeholder='Confirm your password'
+                type="password"
+                id="confirmPassword" // Corrected the id here
+                className="w-full p-2 border border-gray-300 rounded"
+                placeholder="Confirm your password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
@@ -178,33 +171,33 @@ const LoginSignUpScreen = () => {
           {/* Conditional button rendering */}
           {isLogin ? (
             <motion.button
-              type='submit'
-              className='w-full py-2 bg-gray-700 text-white rounded hover:bg-gray-900 transition duration-200 mb-4'
+              type="submit"
+              className="w-full py-2 bg-gray-700 text-white rounded hover:bg-gray-900 transition duration-200 mb-4"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={e => handleSubmit(e, 'login')}
+              onClick={(e) => handleSubmit(e, 'login')}
             >
               Login
             </motion.button>
           ) : (
             <motion.button
-              type='submit'
-              className='w-full py-2 bg-gray-700 text-white rounded hover:bg-gray-900 transition duration-200'
+              type="submit"
+              className="w-full py-2 bg-gray-700 text-white rounded hover:bg-gray-900 transition duration-200"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={e => handleSubmit(e, 'signup')}
+              onClick={(e) => handleSubmit(e, 'signup')}
             >
               Sign Up
             </motion.button>
           )}
         </form>
 
-        <div className='text-center mt-4'>
-          <span className='text-gray-700'>
+        <div className="text-center mt-4">
+          <span className="text-gray-700">
             {isLogin ? 'Don’t have an account? ' : 'Already have an account? '}
             <Link
-              to='#'
-              className='text-gray-700 font-semibold'
+              to="#"
+              className="text-gray-700 font-semibold"
               onClick={() => setIsLogin(!isLogin)}
             >
               {isLogin ? 'Sign-Up' : 'Login'}

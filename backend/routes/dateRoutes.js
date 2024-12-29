@@ -7,5 +7,6 @@ router.post('/add', dateController.addOrUpdateDates);
 router.get('/calendar', dateController.getAllTransactionsCalendar);   
 
 router.get('/:transaction_id', dateController.getTransactionDates);
+router.get('/:transaction_id/:stage_id', dateController.getTransactionDatesByStage);
 
 module.exports = router;

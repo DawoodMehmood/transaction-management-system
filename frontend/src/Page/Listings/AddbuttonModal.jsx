@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { getServerUrl } from '../../utility/getServerUrl';
+import { showErrorToast, showSuccessToast } from '../../toastConfig';
 
-const mapStage = stage_id => {
+const mapStage = (stage_id) => {
   switch (stage_id) {
     case 1:
       return 'Pre Listing';
     case 2:
-      return 'Active listing';
+      return 'Active Listing';
     case 3:
-      return 'Undercontract';
+      return 'Under Contract';
     default:
       return '';
   }
@@ -40,24 +40,14 @@ const TransactionForm = ({ closeModal }) => {
     // Fetch states from the API
     const fetchStates = async () => {
       try {
-        const response = await fetch(
-          'https://api.tkglisting.com/api/states/all'
-        );
+        const response = await fetch(`${getServerUrl()}/api/states/all`);
         if (!response.ok) {
           throw new Error('Failed to fetch states');
         }
         const data = await response.json();
         setStates(data.states); // Set the states from the response
       } catch (error) {
-        toast.error('Error fetching states. Please try again.', {
-          position: 'top-right',
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
+        showErrorToast('Error fetching states. Please try again.');
       }
     };
 
@@ -76,15 +66,7 @@ const TransactionForm = ({ closeModal }) => {
       !stage_id ||
       !createdBy
     ) {
-      toast.error('Please fill out all required fields.', {
-        position: 'top-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+      showErrorToast('Please fill out all required fields.');
       return;
     }
 
@@ -104,16 +86,13 @@ const TransactionForm = ({ closeModal }) => {
 
     console.log('Payload being sent:', payload);
     try {
-      const response = await fetch(
-        'https://api.tkglisting.com/api/transactions/add',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetch(`${getServerUrl()}/api/transactions/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
       console.log('new added', response);
 
@@ -130,22 +109,14 @@ const TransactionForm = ({ closeModal }) => {
         console.log('Full address:', fullAddress);
         console.log('Price:', price);
 
-        toast.success('Transaction saved successfully!', {
-          position: 'top-right',
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
-        let currentSteps = 1;
+        showSuccessToast('Transaction saved successfully!');
+        let currentStep = 1;
         navigate('/StepperSection', {
           state: {
             transactionId,
             createdBy,
             state,
-            currentSteps,
+            currentStep,
             fullAddress,
             price,
           },
@@ -154,99 +125,90 @@ const TransactionForm = ({ closeModal }) => {
         throw new Error('Failed to save transaction');
       }
     } catch (error) {
-      toast.error('Error saving transaction. Please try again.', error, {
-        position: 'top-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
+      showErrorToast('Error saving transaction. Please try again.');
     }
   };
 
   return (
-    <div className='p-6 max-w-lg mx-auto bg-white shadow-lg rounded-lg md:max-w-4xl lg:w-[700px]'>
-      <ToastContainer />
-      <h2 className='text-xl font-semibold mb-4'>Add Details</h2>
+    <div className="p-6 max-w-lg mx-auto bg-white shadow-lg rounded-lg md:max-w-4xl lg:w-[700px]">
+      <h2 className="text-xl font-semibold mb-4">Add Details</h2>
 
       {/* First Name */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           First Name *
         </label>
         <input
-          type='text'
+          type="text"
           value={firstName}
-          onChange={e => setFirstName(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setFirstName(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
       {/* Last Name */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Last Name *
         </label>
         <input
-          type='text'
+          type="text"
           value={lastName}
-          onChange={e => setLastName(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setLastName(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
       {/* Address 1 */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Address 1 *
         </label>
         <input
-          type='text'
+          type="text"
           value={address1}
-          onChange={e => setAddress1(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setAddress1(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
       {/* Address 2 */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Address 2
         </label>
         <input
-          type='text'
+          type="text"
           value={address2}
-          onChange={e => setAddress2(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setAddress2(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
       {/* City */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           City *
         </label>
         <input
-          type='text'
+          type="text"
           value={city}
-          onChange={e => setCity(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setCity(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
       {/* State Dropdown */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           State *
         </label>
         <select
           value={state}
-          onChange={e => setState(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setState(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         >
-          {states.map(stateItem => (
+          {states.map((stateItem) => (
             <option key={stateItem.state} value={stateItem.state}>
               {stateItem.state}
             </option>
@@ -255,57 +217,57 @@ const TransactionForm = ({ closeModal }) => {
       </div>
 
       {/* Zip */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Zip *
         </label>
         <input
-          type='text'
+          type="text"
           value={zip}
-          onChange={e => setZip(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setZip(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
       {/* List Price */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           List Price *
         </label>
         <input
-          type='number'
+          type="number"
           value={listPrice}
-          onChange={e => setListPrice(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setListPrice(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         />
       </div>
 
       {/* Stage Selection */}
-      <div className='mb-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-1'>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Stage *
         </label>
         <select
           value={stage_id}
-          onChange={e => setStageId(e.target.value)}
-          className='w-full px-4 py-2 border border-gray-300 rounded-md'
+          onChange={(e) => setStageId(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-md"
         >
-          <option value=''>Select Stage</option>
-          <option value='1'>Pre Listing</option>
-          <option value='2'>Active listing</option>
-          <option value='3'>Undercontract</option>
+          <option value="">Select Stage</option>
+          <option value="1">Pre Listing</option>
+          <option value="2">Active Listing</option>
+          <option value="3">Under Contract</option>
         </select>
       </div>
 
       <button
         onClick={handleSave}
-        className='w-full bg-gray-700 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded'
+        className="w-full bg-gray-700 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded"
       >
         Save
       </button>
       <button
         onClick={closeModal}
-        className='w-full mt-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded'
+        className="w-full mt-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded"
       >
         Cancel
       </button>

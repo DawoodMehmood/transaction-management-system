@@ -12,8 +12,11 @@ router.get('/price-summary', transactionController.getStageWisePrices);
 // Get details of a particular transaction by ID
 router.get('/:transaction_id', transactionController.getTransactionDetails);
 router.get('/:transaction_id/details', transactionController.getChecklistDetails);
-router.put('/:task_id/status', transactionController.updateTaskStatus);
+router.put('/:transaction_detail_id/status', transactionController.updateTaskStatus);
+router.put('/:transaction_detail_id/task', transactionController.updateTask);
+router.post('/:transaction_detail_id/duplicate', transactionController.duplicateTask);
 
 router.patch('/:transaction_id/stage', transactionController.updateTransactionStage);
+router.delete('/bulk-delete', transactionController.bulkDeleteTransactions);
 
 module.exports = router;

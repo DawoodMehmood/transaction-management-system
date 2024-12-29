@@ -214,6 +214,7 @@ exports.getStages = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
 // Retrieve checklist details for a specific transaction
 exports.getChecklistDetails = async (req, res) => {
     const { transaction_id } = req.params;
@@ -236,8 +237,12 @@ exports.getChecklistDetails = async (req, res) => {
                 td.created_date, 
                 td.created_by, 
                 td.updated_date, 
-                td.updated_by, 
-                t.task_days
+                td.updated_by,
+                td.is_skipped,
+                td.skip_reason,
+                td.notes, 
+                t.task_days,
+                COALESCE(td.task_due_date, td.created_date + t.task_days * INTERVAL '1 day') AS task_due_date
             FROM 
                 tkg.transaction_detail td
             LEFT JOIN 
@@ -260,7 +265,7 @@ exports.getChecklistDetails = async (req, res) => {
 
         // Group tasks by stage_id
         const groupedDetails = result.rows.reduce((acc, row) => {
-            const { stage_id, task_id, task_name, task_status, task_days } = row;
+            const { stage_id, task_id, transaction_detail_id, task_name, task_status, task_days, is_skipped, skip_reason, notes, task_due_date } = row;
 
             // Initialize the group if it doesn't exist
             if (!acc[stage_id]) {
@@ -275,10 +280,16 @@ exports.getChecklistDetails = async (req, res) => {
 
             // Add task details with the 'remove' flag
             acc[stage_id].tasks.push({ 
+                stage_id,
                 task_id, 
+                transaction_detail_id,
                 task_name, 
                 task_status, 
-                task_days, 
+                task_days,
+                is_skipped,
+                skip_reason,
+                notes,
+                task_due_date,
                 remove: shouldRemove 
             });
 
@@ -303,30 +314,49 @@ exports.getChecklistDetails = async (req, res) => {
 
 // Change task status for a specific stage
 exports.updateTaskStatus = async (req, res) => {
-    const { task_id } = req.params;
-    const { transaction_id, stage_id, task_status } = req.body; // Include stage_id in the body
+    const { transaction_detail_id } = req.params;
+    const { transaction_id, stage_id, task_status, skip_reason = null } = req.body; // Default skip_reason to null
 
     try {
-        // Update the task status for the given task_id, stage_id, and transaction_id
-        const updateQuery = `
+        // Base query for updating task status, is_skipped, and skip_reason
+        let updateQuery = `
             UPDATE tkg.transaction_detail
-            SET task_status = $1, updated_date = NOW()
-            WHERE task_id = $2 AND transaction_id = $3 AND stage_id = $4
-            RETURNING task_id, task_name, task_status, stage_id;
+            SET 
+                task_status = $1, 
+                is_skipped = $5, 
+                skip_reason = $6, 
+                updated_date = NOW()
+        `;
+        const queryValues = [task_status, transaction_detail_id, transaction_id, stage_id];
+
+        // Determine the value of `is_skipped` and `skip_reason`
+        let isSkipped = false;
+        let newSkipReason = null;
+
+        if (task_status === 'Open' && skip_reason) {
+            isSkipped = true; // Mark as skipped when transitioning to Open with a reason
+            newSkipReason = skip_reason;
+        } else if (task_status === 'Completed') {
+            isSkipped = false; // Clear skipped flag and reason when marking as completed
+        }
+
+        queryValues.push(isSkipped, newSkipReason);
+
+        updateQuery += `
+            WHERE transaction_detail_id = $2 AND transaction_id = $3 AND stage_id = $4
+            RETURNING transaction_detail_id, task_name, task_status, stage_id, skip_reason, is_skipped;
         `;
 
-        const updateResult = await pool.query(updateQuery, [task_status, task_id, transaction_id, stage_id]);
+        // Execute the query
+        const updateResult = await pool.query(updateQuery, queryValues);
 
         if (updateResult.rowCount === 0) {
             return res.status(404).json({
-                message: 'Task not found for the given task_id, stage_id, and transaction_id.'
+                message: 'Task not found for the given transaction_detail_id, stage_id, and transaction_id.'
             });
         }
 
         const updatedTask = updateResult.rows[0];
-
-        // Check if the updated task status is 'completed'
-        const shouldRemoveFromFrontend = updatedTask.task_status.toLowerCase() === 'completed';
 
         // Fetch total tasks and completed tasks count for the given stage and transaction
         const countQuery = `
@@ -344,8 +374,7 @@ exports.updateTaskStatus = async (req, res) => {
             message: 'Task status updated successfully.',
             total_tasks,
             completed_tasks,
-            task: updatedTask, // Includes updated task with stage_id
-            remove: shouldRemoveFromFrontend, // Signal for frontend to remove the task if completed
+            task: updatedTask, // Includes updated task with stage_id, skip_reason, and is_skipped
         });
 
     } catch (error) {
@@ -358,57 +387,96 @@ exports.updateTaskStatus = async (req, res) => {
 };
 
 
-
 exports.updateTransactionStage = async (req, res) => {
     const { transaction_id } = req.params;
     const { current_stage, new_stage } = req.body;
-
+  
+    const client = await pool.connect(); // Get a client from the pool
+  
     try {
-        // Ensure the transaction exists and the current stage matches
-        const checkQuery = `
-            SELECT stage_id 
-            FROM tkg.transaction 
-            WHERE transaction_id = $1;
+      await client.query('BEGIN'); // Start the transaction
+  
+      // Ensure the transaction exists and the current stage matches
+      const checkQuery = `
+        SELECT stage_id 
+        FROM tkg.transaction
+        WHERE transaction_id = $1;
+      `;
+      const checkResult = await client.query(checkQuery, [transaction_id]);
+  
+      if (checkResult.rows.length === 0) {
+        throw new Error('Transaction not found.');
+      }
+  
+      const existingStage = checkResult.rows[0].stage_id;
+  
+      if (existingStage != current_stage) {
+        throw new Error(`The current stage is not '${current_stage}', update aborted.`);
+      }
+  
+      // Update the transaction's stage
+      const updateStageQuery = `
+        UPDATE tkg.transaction
+        SET stage_id = $1, updated_date = NOW()
+        WHERE transaction_id = $2
+        RETURNING transaction_id, stage_id;
+      `;
+      const updateStageResult = await client.query(updateStageQuery, [new_stage, transaction_id]);
+  
+      // Clone dates only when moving up a stage
+      if (new_stage > current_stage) {
+        const fetchDatesQuery = `
+          SELECT state_id, date_id, date_name, entered_date, created_date, created_by, transaction_id, stage_id, updated_date, updated_by
+          FROM tkg.dates
+          WHERE transaction_id = $1 AND stage_id = $2;
         `;
-        const checkResult = await pool.query(checkQuery, [transaction_id]);
-
-        if (checkResult.rows.length === 0) {
-            return res.status(404).json({
-                message: 'Transaction not found.'
-            });
+        const datesResult = await client.query(fetchDatesQuery, [transaction_id, current_stage]);
+  
+        if (datesResult.rows.length > 0) {
+          const insertDatesQuery = `
+            INSERT INTO tkg.dates (state_id, date_id, date_name, entered_date, created_date, created_by, transaction_id, stage_id, updated_date, updated_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            ON CONFLICT (state_id, date_name, transaction_id, stage_id)
+            DO NOTHING;
+          `;
+          const insertPromises = datesResult.rows.map((date) =>
+            client.query(insertDatesQuery, [
+              date.state_id,
+              date.date_id,
+              date.date_name,
+              date.entered_date,
+              date.created_date,
+              date.created_by,
+              transaction_id,
+              new_stage,
+              date.updated_date,
+              date.updated_by,
+            ])
+          );
+  
+          await Promise.all(insertPromises); // Execute all insert queries
         }
-        console.log(checkResult.rows[0]);
-
-        const existingStage = checkResult.rows[0].stage_id;
-        console.log(existingStage);
-
-        if (existingStage != current_stage) {
-            return res.status(400).json({
-                message: `The current stage is not '${current_stage}', update aborted.`
-            });
-        }
-
-        // Update the transaction stage
-        const updateQuery = `
-            UPDATE tkg.transaction
-            SET stage_id = $1, updated_date = NOW()
-            WHERE transaction_id = $2
-            RETURNING transaction_id, stage_id;
-        `;
-        const updateResult = await pool.query(updateQuery, [new_stage, transaction_id]);
-
-        res.status(200).json({
-            message: 'Transaction stage updated successfully.',
-            transaction: updateResult.rows[0]
-        });
+      }
+  
+      await client.query('COMMIT'); // Commit the transaction
+  
+      res.status(200).json({
+        message: 'Transaction stage updated successfully.',
+        transaction: updateStageResult.rows[0],
+      });
     } catch (error) {
-        console.error('Error updating transaction stage:', error);
-        res.status(500).json({
-            message: 'Error updating transaction stage.',
-            error: error.message
-        });
+      await client.query('ROLLBACK'); // Rollback the transaction on error
+      console.error('Error updating transaction stage:', error.message);
+      res.status(500).json({
+        message: 'Error updating transaction stage.',
+        error: error.message,
+      });
+    } finally {
+      client.release(); // Release the client back to the pool
     }
-};
+  };
+  
+
 // controllers/transactionController.js
 exports.getStageWisePrices = async (req, res) => {
     try {
@@ -461,3 +529,154 @@ exports.getStageWisePrices = async (req, res) => {
         });
     }
 };
+
+exports.bulkDeleteTransactions = async (req, res) => {
+    const { transaction_ids } = req.body;
+  
+    if (!transaction_ids || !Array.isArray(transaction_ids)) {
+      return res.status(400).json({ message: 'Invalid transaction IDs.' });
+    }
+  
+    try {
+      // Step 1: Delete dependent rows in 'tkg.dates'
+      const deleteDatesQuery = `
+        DELETE FROM tkg.dates
+        WHERE transaction_id = ANY($1::bigint[]);
+      `;
+      await pool.query(deleteDatesQuery, [transaction_ids]);
+  
+      // Step 2: Delete rows in 'tkg.transaction'
+      const deleteTransactionsQuery = `
+        DELETE FROM tkg."transaction"
+        WHERE transaction_id = ANY($1::bigint[]);
+      `;
+      await pool.query(deleteTransactionsQuery, [transaction_ids]);
+  
+      res.status(200).json({ message: 'Transactions and related data deleted successfully.' });
+    } catch (error) {
+      console.error('Error deleting transactions:', error);
+      res.status(500).json({ message: 'Error deleting transactions.', error: error.message });
+    }
+  };
+  
+exports.updateTask = async (req, res) => {
+    const { transaction_detail_id } = req.params;
+    const { transaction_id, stage_id, notes, task_due_date } = req.body;
+
+    try {
+        // Base query for updating task status, is_skipped, and skip_reason
+        const updateQuery = `
+            UPDATE tkg.transaction_detail
+            SET 
+                notes = $1, 
+                task_due_date = $2, 
+                updated_date = NOW()
+            WHERE transaction_detail_id = $3 AND transaction_id = $4 AND stage_id = $5
+            RETURNING transaction_detail_id, task_name, task_status, stage_id, notes, task_due_date;
+            `;
+        
+        const queryValues = [notes, task_due_date, transaction_detail_id, transaction_id, stage_id];
+        
+        // Execute the query
+        const updateResult = await pool.query(updateQuery, queryValues);
+
+        if (updateResult.rowCount === 0) {
+            return res.status(404).json({
+                message: 'Task not found for the given transaction_detail_id, stage_id, and transaction_id.'
+            });
+        }
+
+        res.status(200).json({
+            message: 'Task updated successfully.',
+        });
+
+    } catch (error) {
+        console.error("Error updating task status:", error);
+        res.status(500).json({
+            message: 'Error updating task status.',
+            error: error.message
+        });
+    }
+};
+
+exports.duplicateTask = async (req, res) => {
+    const { transaction_detail_id } = req.params;
+
+    const { transaction_id, stage_id } = req.body;
+  
+    try {
+      // Fetch the row to duplicate
+      const fetchQuery = 
+        `SELECT * 
+        FROM tkg.transaction_detail
+        WHERE transaction_detail_id = $1 AND transaction_id = $2 AND stage_id = $3;`
+      ;
+      const fetchResult = await pool.query(fetchQuery, [transaction_detail_id, transaction_id, stage_id]);
+  
+      if (fetchResult.rowCount === 0) {
+        return res.status(404).json({ message: 'Task not found for duplication.' });
+      }
+  
+      const taskToDuplicate = fetchResult.rows[0];
+  
+      // Get the highest transaction_detail_id for the given transaction_id
+      const getMaxIdQuery = 
+        `SELECT MAX(transaction_detail_id) AS max_id
+        FROM tkg.transaction_detail
+        WHERE transaction_id = $1;`
+      ;
+      const maxIdResult = await pool.query(getMaxIdQuery, [transaction_id]);
+      const maxId = maxIdResult.rows[0]?.max_id || 0;
+  
+      // Increment transaction_detail_id
+      const newTransactionDetailId = parseInt(maxId) + 1;
+  
+      // Insert the duplicated row with modifications
+      const insertQuery = 
+        `INSERT INTO tkg.transaction_detail (
+          transaction_id, transaction_detail_id, stage_id, task_id, task_name, task_status, task_due_date, notes,
+          list_price, sale_price, state_id, date_id, transaction_date, delete_ind, 
+          created_date, created_by, updated_date, updated_by,
+          skip_reason, is_skipped, skipped_by, skipped_date
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8,
+          $9, $10, $11, $12, $13, $14,
+          NOW(), 'system', NULL, NULL,
+          NULL, FALSE, NULL, NULL
+        )
+        RETURNING *;`
+      ;
+  
+      const queryValues = [
+        taskToDuplicate.transaction_id,
+        newTransactionDetailId,
+        taskToDuplicate.stage_id,
+        taskToDuplicate.task_id,
+        taskToDuplicate.task_name,
+        taskToDuplicate.task_status,
+        taskToDuplicate.task_due_date,
+        taskToDuplicate.notes,
+        taskToDuplicate.list_price,
+        taskToDuplicate.sale_price,
+        taskToDuplicate.state_id,
+        taskToDuplicate.date_id,
+        taskToDuplicate.transaction_date,
+        taskToDuplicate.delete_ind,
+      ];
+  
+      const insertResult = await pool.query(insertQuery, queryValues);
+  
+      res.status(201).json({
+        message: 'Task duplicated successfully.',
+        task: insertResult.rows[0],
+      });
+    } catch (error) {
+      console.error('Error duplicating task:', error);
+      res.status(500).json({
+        message: 'Error duplicating task.',
+        error: error.message,
+      });
+    }
+  };
+
+  
