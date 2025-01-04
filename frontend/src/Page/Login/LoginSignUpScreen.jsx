@@ -33,10 +33,7 @@ const LoginSignUpScreen = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      console.log(response);
-
       const data = await response.json();
-      console.log(data);
 
       if (response.ok) {
         showSuccessToast('Login successful!');

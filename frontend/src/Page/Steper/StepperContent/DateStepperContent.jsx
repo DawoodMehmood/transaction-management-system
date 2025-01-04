@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { getServerUrl } from '../../../utility/getServerUrl';
-import { showSuccessToast } from '../../../toastConfig';
+import { showSuccessToast, showWarningToast } from '../../../toastConfig';
 
 const DateFields = ({ transactionId, createdBy, state, stageId }) => {
   console.log('Date content', transactionId, createdBy, state, stageId);
@@ -100,9 +100,14 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
       stage_id: stageId,
       dates: datesToAdd,
     };
-
-    setIsLoading(true);
+    
+    
     setErrorMessage('');
+    if (datesToAdd.length === 0) {
+      showWarningToast('Please change at least one date before submitting.');
+      return;
+    }
+    setIsLoading(true);
     try {
       const response = await fetch(`${getServerUrl()}/api/dates/add`, {
         method: 'POST',

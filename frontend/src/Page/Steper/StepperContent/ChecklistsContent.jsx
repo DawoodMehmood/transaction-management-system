@@ -13,7 +13,8 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
   console.log('Checklist content', currentStep, transactionId);
   const [stages, setStages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingTransactionDetailId, setLoadingTransactionDetailId] = useState(null);
+  const [loadingTransactionDetailId, setLoadingTransactionDetailId] =
+    useState(null);
   const [activeStage, setActiveStage] = useState(currentStep);
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -85,7 +86,13 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
     }
   };
 
-  const handleDuplicateSubmit = async (transactionDetailId, stageId) => {
+  const handleDuplicateSubmit = async (
+    transactionDetailId,
+    stageId,
+    taskDueDate,
+    count,
+    frequency
+  ) => {
     try {
       const response = await fetch(
         `${getServerUrl()}/api/transactions/${transactionDetailId}/duplicate`,
@@ -95,18 +102,21 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
           body: JSON.stringify({
             transaction_id: transactionId,
             stage_id: stageId,
+            taskDueDate,
+            count,
+            frequency,
           }),
         }
       );
 
       if (response.ok) {
-        showSuccessToast('Task duplicated successfully.');
+        showSuccessToast('Tasks duplicated successfully.');
         await fetchData();
       } else {
-        console.error('Failed to duplicate task');
+        console.error('Failed to duplicate tasks');
       }
     } catch (error) {
-      console.error('Error duplicating task:', error);
+      console.error('Error duplicating tasks:', error);
     }
   };
 
@@ -124,10 +134,16 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
     setShowRowDrawer(false);
   };
 
-  const handleDuplicateConfirm = () => {
+  const handleDuplicateConfirm = (count, frequency) => {
     if (taskToDuplicate) {
-      const { transactionDetailId, stageId } = taskToDuplicate;
-      handleDuplicateSubmit(transactionDetailId, stageId);
+      const { transactionDetailId, stageId, taskDueDate } = taskToDuplicate;
+      handleDuplicateSubmit(
+        transactionDetailId,
+        stageId,
+        taskDueDate,
+        count,
+        frequency
+      );
       setTaskToDuplicate(null);
     }
     setShowDuplicateModal(false);
@@ -166,7 +182,10 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                         <input
                           type="checkbox"
                           checked={task.task_status === 'Completed'}
-                          disabled={loadingTransactionDetailId === task.transaction_detail_id}
+                          disabled={
+                            loadingTransactionDetailId ===
+                            task.transaction_detail_id
+                          }
                           onClick={(e) => e.stopPropagation()} // Prevent row click when checkbox is clicked
                           onChange={() =>
                             handleCheckboxChange(
@@ -177,7 +196,8 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                           }
                           className="form-checkbox h-5 w-5 text-blue-600 cursor-pointer"
                         />
-                        {loadingTransactionDetailId === task.transaction_detail_id && (
+                        {loadingTransactionDetailId ===
+                          task.transaction_detail_id && (
                           <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
                         )}
                       </label>
@@ -201,13 +221,13 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                             if (daysRemaining === 0) {
                               return 'Today';
                             } else if (daysRemaining === 1) {
-                              return `${daysRemaining} day to go`;
+                              return `${daysRemaining} day`;
                             } else if (daysRemaining > 1) {
-                              return `${daysRemaining} days to go`;
+                              return `${daysRemaining} days`;
                             } else {
-                              return `${Math.abs(daysRemaining)} day${
-                                Math.abs(daysRemaining) === 1 ? '' : 's'
-                              } ago`;
+                              return `${daysRemaining} day${
+                                daysRemaining === -1 ? '' : 's'
+                              }`;
                             }
                           })()
                         : 'N/A'}
@@ -308,12 +328,22 @@ const RowDrawer = ({
   };
   const handleSkipClick = () => {
     if (!task.is_skipped) {
-      setTaskToSkip({ transactionDetailId: task.transaction_detail_id, stageId: task.stage_id });
+      setTaskToSkip({
+        transactionDetailId: task.transaction_detail_id,
+        stageId: task.stage_id,
+      });
       setShowSkipModal(true);
     }
   };
   const handleDuplicateClick = () => {
-    setTaskToDuplicate({ transactionDetailId: task.transaction_detail_id, stageId: task.stage_id });
+    const date = new Date(task.task_due_date);
+    setTaskToDuplicate({
+      transactionDetailId: task.transaction_detail_id,
+      stageId: task.stage_id,
+      taskDueDate: new Date(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+      ),
+    });
     setShowDuplicateModal(true);
   };
 
@@ -438,13 +468,20 @@ const DuplicateModal = ({
   setShowDuplicateModal,
   onConfirm,
 }) => {
+  const [count, setCount] = useState(1); // Default count is 1
+  const [frequency, setFrequency] = useState('Every month'); // Default frequency
+
   const handleClose = () => {
     setShowDuplicateModal(false);
   };
 
   const handleSubmit = () => {
-    onConfirm();
-    handleClose();
+    if (count > 0 && frequency) {
+      onConfirm(count, frequency); // Pass count and frequency to the parent handler
+      handleClose();
+    } else {
+      alert('Please provide valid inputs.');
+    }
   };
 
   return (
@@ -458,7 +495,32 @@ const DuplicateModal = ({
         >
           <div className="bg-white rounded-lg p-6 w-1/3">
             <h3 className="text-lg font-bold mb-4">Duplicate Task</h3>
-            <div>Are you sure you want to duplicate the task?</div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                How many times to duplicate:
+              </label>
+              <input
+                type="number"
+                value={count}
+                onChange={(e) => setCount(parseInt(e.target.value))}
+                className="w-full border rounded p-2"
+                min="1"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Frequency:
+              </label>
+              <select
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value)}
+                className="w-full border rounded p-2"
+              >
+                <option value="Every two days">Every two days</option>
+                <option value="Every week">Every week</option>
+                <option value="Every month">Every month</option>
+              </select>
+            </div>
             <div className="flex justify-end mt-4 space-x-2">
               <button
                 className="bg-gray-300 text-gray-800 font-semibold px-4 py-2 rounded"
@@ -470,7 +532,7 @@ const DuplicateModal = ({
                 className="bg-gray-700 text-white px-4 py-2 rounded"
                 onClick={handleSubmit}
               >
-                Confirm
+                Duplicate
               </button>
             </div>
           </div>

@@ -46,7 +46,8 @@ const updateTaskStatus = async (
   setLoadingTransactionDetailId
 ) => {
   try {
-    setLoadingTransactionDetailId(transactionDetailId); // Show loader for this task
+    const compositeKey = transactionId + transactionDetailId;
+    setLoadingTransactionDetailId(compositeKey);
 
     const requestBody = {
       transaction_id: transactionId,
@@ -71,7 +72,7 @@ const updateTaskStatus = async (
     } else {
       const errorMessage = await response.text();
       console.error('Failed to update task status:', errorMessage);
-      throw new Error(`Failed to update task status: ${errorMessage}`);
+      showErrorToast('Failed to update task status');
     }
   } catch (error) {
     console.error('Error updating task status:', error);
@@ -112,11 +113,14 @@ const TaskTable = ({
                   <input
                     type="checkbox"
                     onChange={() => onTaskStatusChange(task)}
-                    disabled={task.taskStatus === 'Completed'}
+                    disabled={
+                      loadingTransactionDetailId === task.transactionId + task.transactionDetailId ||
+                      task.task_status === 'Completed'
+                    }
                     checked={task.taskStatus === 'Completed'}
                     className="appearance-none w-4 h-4 border border-gray-400 rounded checked:bg-blue-600 checked:border-transparent"
                   />
-                  {loadingTransactionDetailId === task.transactionDetailId && (
+                  {loadingTransactionDetailId === task.transactionId + task.transactionDetailId && (
                     <div className="animate-spin absolute -top-0 left-5 rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
                   )}
                 </div>

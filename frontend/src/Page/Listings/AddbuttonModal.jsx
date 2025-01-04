@@ -35,26 +35,40 @@ const TransactionForm = ({ closeModal }) => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
     if (storedUser && storedUser.username) {
       setCreatedBy(storedUser.username); // Set createdBy to the stored username
+    } else {
+      setCreatedBy('Faisal'); // Set createdBy to 'admin' for now
     }
 
     // Fetch states from the API
-    const fetchStates = async () => {
-      try {
-        const response = await fetch(`${getServerUrl()}/api/states/all`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch states');
-        }
-        const data = await response.json();
-        setStates(data.states); // Set the states from the response
-      } catch (error) {
-        showErrorToast('Error fetching states. Please try again.');
-      }
-    };
+    // const fetchStates = async () => {
+    //   try {
+    //     const response = await fetch(`${getServerUrl()}/api/states/all`);
+    //     if (!response.ok) {
+    //       throw new Error('Failed to fetch states');
+    //     }
+    //     const data = await response.json();
+    //     setStates(data.states); // Set the states from the response
+    //   } catch (error) {
+    //     showErrorToast('Error fetching states. Please try again.');
+    //   }
+    // };
 
-    fetchStates();
+    // fetchStates();
   }, []);
 
   const handleSave = async () => {
+    console.log({
+      firstName,
+      lastName,
+      address1,
+      city,
+      state,
+      zip,
+      listPrice,
+      stage_id,
+      createdBy,
+    });
+
     if (
       !firstName ||
       !lastName ||
@@ -199,7 +213,7 @@ const TransactionForm = ({ closeModal }) => {
       </div>
 
       {/* State Dropdown */}
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">
           State *
         </label>
@@ -214,7 +228,7 @@ const TransactionForm = ({ closeModal }) => {
             </option>
           ))}
         </select>
-      </div>
+      </div> */}
 
       {/* Zip */}
       <div className="mb-4">

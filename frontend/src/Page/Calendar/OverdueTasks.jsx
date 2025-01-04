@@ -88,7 +88,8 @@ export const OverdueTasks = ({ setupdatedLoading }) => {
   }, []);
 
   const updateTaskStatus = async (task) => {
-    setLoadingTransactionDetailId(task.transaction_detail_id);
+    const compositeKey = task.transaction_id + task.transaction_detail_id;
+    setLoadingTransactionDetailId(compositeKey);
     try {
       const response = await fetch(
         `${getServerUrl()}/api/transactions/${task.transaction_detail_id}/status`,
@@ -111,12 +112,14 @@ export const OverdueTasks = ({ setupdatedLoading }) => {
         setTasksByStage((prevTasks) => {
           const updatedTasks = { ...prevTasks };
           updatedTasks[task.stage_id] = updatedTasks[task.stage_id].filter(
-            (t) => t.transaction_detail_id !== task.transaction_detail_id
+            (t) =>
+              t.transaction_id + t.transaction_detail_id !== compositeKey
           );
           return updatedTasks;
         });
       } else {
-        throw new Error('Failed to update task status');
+        console.error('Error updating task status');
+        showErrorToast('Error updating task status');
       }
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -155,7 +158,7 @@ export const OverdueTasks = ({ setupdatedLoading }) => {
               <React.Fragment key={stageId}>
                 {tasksByStage[stageId].map((task) => (
                   <tr
-                    key={task.transaction_detail_id}
+                    key={task.transaction_id + task.transaction_detail_id }
                     className="border-b text-nowrap hover:bg-gray-50 transition duration-150 ease-in-out"
                   >
                     <td className="px-4 py-3 flex items-center">
@@ -164,9 +167,12 @@ export const OverdueTasks = ({ setupdatedLoading }) => {
                         className="mr-2"
                         checked={task.task_status === 'Completed'}
                         onChange={() => updateTaskStatus(task)}
-                        disabled={task.task_status === 'Completed'}
+                        disabled={
+                          loadingTransactionDetailId === task.transaction_id + task.transaction_detail_id ||
+                          task.task_status === 'Completed'
+                        }
                       />
-                      {loadingTransactionDetailId === task.transaction_detail_id && (
+                      {loadingTransactionDetailId === task.transaction_id + task.transaction_detail_id && (
                         <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
                       )}
                       <span className="ml-2">{task.transactionName}</span>

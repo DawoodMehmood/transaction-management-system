@@ -601,82 +601,101 @@ exports.updateTask = async (req, res) => {
 
 exports.duplicateTask = async (req, res) => {
     const { transaction_detail_id } = req.params;
+    const { transaction_id, stage_id, taskDueDate, count, frequency } = req.body;
 
-    const { transaction_id, stage_id } = req.body;
-  
     try {
-      // Fetch the row to duplicate
-      const fetchQuery = 
-        `SELECT * 
+        // Fetch the row to duplicate
+        const fetchQuery =  `
+        SELECT * 
         FROM tkg.transaction_detail
         WHERE transaction_detail_id = $1 AND transaction_id = $2 AND stage_id = $3;`
-      ;
-      const fetchResult = await pool.query(fetchQuery, [transaction_detail_id, transaction_id, stage_id]);
-  
-      if (fetchResult.rowCount === 0) {
-        return res.status(404).json({ message: 'Task not found for duplication.' });
-      }
-  
-      const taskToDuplicate = fetchResult.rows[0];
-  
-      // Get the highest transaction_detail_id for the given transaction_id
-      const getMaxIdQuery = 
-        `SELECT MAX(transaction_detail_id) AS max_id
-        FROM tkg.transaction_detail
-        WHERE transaction_id = $1;`
-      ;
-      const maxIdResult = await pool.query(getMaxIdQuery, [transaction_id]);
-      const maxId = maxIdResult.rows[0]?.max_id || 0;
-  
-      // Increment transaction_detail_id
-      const newTransactionDetailId = parseInt(maxId) + 1;
-  
-      // Insert the duplicated row with modifications
-      const insertQuery = 
-        `INSERT INTO tkg.transaction_detail (
-          transaction_id, transaction_detail_id, stage_id, task_id, task_name, task_status, task_due_date, notes,
-          list_price, sale_price, state_id, date_id, transaction_date, delete_ind, 
-          created_date, created_by, updated_date, updated_by,
-          skip_reason, is_skipped, skipped_by, skipped_date
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8,
-          $9, $10, $11, $12, $13, $14,
-          NOW(), 'system', NULL, NULL,
-          NULL, FALSE, NULL, NULL
-        )
-        RETURNING *;`
-      ;
-  
-      const queryValues = [
-        taskToDuplicate.transaction_id,
-        newTransactionDetailId,
-        taskToDuplicate.stage_id,
-        taskToDuplicate.task_id,
-        taskToDuplicate.task_name,
-        taskToDuplicate.task_status,
-        taskToDuplicate.task_due_date,
-        taskToDuplicate.notes,
-        taskToDuplicate.list_price,
-        taskToDuplicate.sale_price,
-        taskToDuplicate.state_id,
-        taskToDuplicate.date_id,
-        taskToDuplicate.transaction_date,
-        taskToDuplicate.delete_ind,
-      ];
-  
-      const insertResult = await pool.query(insertQuery, queryValues);
-  
-      res.status(201).json({
-        message: 'Task duplicated successfully.',
-        task: insertResult.rows[0],
-      });
-    } catch (error) {
-      console.error('Error duplicating task:', error);
-      res.status(500).json({
-        message: 'Error duplicating task.',
-        error: error.message,
-      });
-    }
-  };
+        
+        const fetchResult = await pool.query(fetchQuery, [transaction_detail_id, transaction_id, stage_id]);
 
-  
+        if (fetchResult.rowCount === 0) {
+            return res.status(404).json({ message: 'Task not found for duplication.' });
+        }
+
+        const taskToDuplicate = fetchResult.rows[0];
+
+        // Frequency-based date increment logic
+        const calculateNewDate = (currentDate, frequency, increment) => {
+            const newDate = new Date(currentDate); // Clone the current date
+            if (frequency === 'Every two days') {
+                newDate.setDate(newDate.getDate() + 2 * increment);
+            } else if (frequency === 'Every week') {
+                newDate.setDate(newDate.getDate() + 7 * increment);
+            } else if (frequency === 'Every month') {
+                newDate.setMonth(newDate.getMonth() + 1 * increment);
+            }
+            return newDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+        };
+
+        const duplicatedTasks = [];
+
+        // Duplicate the task `count` number of times
+        for (let i = 1; i <= count; i++) {
+            const newDueDate = calculateNewDate(taskDueDate, frequency, i);
+
+            // Get the highest transaction_detail_id for the given transaction_id
+            const getMaxIdQuery = `
+                SELECT MAX(transaction_detail_id) AS max_id
+                FROM tkg.transaction_detail
+                WHERE transaction_id = $1;
+            `;
+            const maxIdResult = await pool.query(getMaxIdQuery, [transaction_id]);
+            const maxId = maxIdResult.rows[0]?.max_id || 0;
+
+            // Increment transaction_detail_id
+            const newTransactionDetailId = parseInt(maxId) + i;
+
+            // Insert the duplicated row with modifications
+            const insertQuery = `
+                INSERT INTO tkg.transaction_detail (
+                    transaction_id, transaction_detail_id, stage_id, task_id, task_name, task_status, task_due_date, notes,
+                    list_price, sale_price, state_id, date_id, transaction_date, delete_ind, 
+                    created_date, created_by, updated_date, updated_by,
+                    skip_reason, is_skipped, skipped_by, skipped_date
+                ) VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8,
+                    $9, $10, $11, $12, $13, $14,
+                    CURRENT_DATE, 'system', NULL, NULL,
+                    NULL, FALSE, NULL, NULL
+                )
+                RETURNING *;
+            `;
+
+            const queryValues = [
+                taskToDuplicate.transaction_id,
+                newTransactionDetailId,
+                taskToDuplicate.stage_id,
+                taskToDuplicate.task_id,
+                taskToDuplicate.task_name,
+                taskToDuplicate.task_status,
+                newDueDate,
+                taskToDuplicate.notes,
+                taskToDuplicate.list_price,
+                taskToDuplicate.sale_price,
+                taskToDuplicate.state_id,
+                taskToDuplicate.date_id,
+                taskToDuplicate.transaction_date,
+                taskToDuplicate.delete_ind,
+            ];
+
+            const insertResult = await pool.query(insertQuery, queryValues);
+            duplicatedTasks.push(insertResult.rows[0]);
+        }
+
+        res.status(201).json({
+            message: 'Tasks duplicated successfully.',
+            tasks: duplicatedTasks,
+        });
+    } catch (error) {
+        console.error('Error duplicating tasks:', error);
+        res.status(500).json({
+            message: 'Error duplicating tasks.',
+            error: error.message,
+        });
+    }
+};
+
