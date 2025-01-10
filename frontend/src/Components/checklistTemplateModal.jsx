@@ -43,9 +43,9 @@ export const ChecklistTemplateModal = ({
 }) => {
   const [selectedChecklist, setSelectedChecklist] = useState('Denver');
   const handleConfirm = () => {
-    showSuccessToast(
-      'Applied Successfully! We are generating tasks according to the template you choose. You can refresh the page later.'
-    );
+    // showSuccessToast(
+    //   'Applied Successfully! We are generating tasks according to the template you choose. You can refresh the page later.'
+    // );
     setSelectedChecklistData(checklistData[selectedChecklist]);
     setChecklistApplied(true); // Notify parent that checklist has been applied
 

@@ -21,7 +21,7 @@ const Listings = () => {
     setRefreshKey((prev) => prev + 1);
   }, []);
 
-  const tabs = ['Listing', 'Buyers & Referrals']; // Tab items
+  const tabs = ['Listing', 'Buyers', 'Referrals']; // Tab items
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -45,7 +45,7 @@ const Listings = () => {
       case 'Listing':
         return (
           <div>
-            <ListingsSection />
+            <ListingsSection refreshKey={refreshKey} />
           </div>
         );
       // case 'Lease':
@@ -56,7 +56,13 @@ const Listings = () => {
       //       </div>
       //     </div>
       //   );
-      case 'Buyers & Referrals':
+      case 'Buyers':
+        return (
+          <div>
+            <div>Nothing to show yet</div>
+          </div>
+        );
+      case 'Referrals':
         return (
           <div>
             <div>Nothing to show yet</div>

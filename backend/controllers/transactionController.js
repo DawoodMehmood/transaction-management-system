@@ -242,17 +242,26 @@ exports.getChecklistDetails = async (req, res) => {
                 td.skip_reason,
                 td.notes, 
                 t.task_days,
-                COALESCE(td.task_due_date, td.created_date + t.task_days * INTERVAL '1 day') AS task_due_date
+                COALESCE(
+                    td.task_due_date::TEXT, 
+                    ((d.entered_date::DATE + t.task_days * INTERVAL '1 day')::TEXT)
+                ) AS task_due_date
             FROM 
                 tkg.transaction_detail td
+            LEFT JOIN 
+                tkg.dates d ON 
+                    td.state_id = d.state_id AND 
+                    td.date_id = d.date_id AND 
+                    td.transaction_id = d.transaction_id AND 
+                    td.stage_id = d.stage_id 
             LEFT JOIN 
                 tkg.tasks t ON td.task_id = t.task_id
                 AND td.state_id = t.state 
                 AND td.stage_id = t.stage_id
             WHERE 
-                td.transaction_id = $1
+                td.transaction_id = $1 AND td.date_id = d.date_id
             ORDER BY 
-                td.stage_id, td.task_id;
+                td.stage_id, td.task_id, task_due_date;
         `;
 
         const result = await pool.query(query, [transaction_id]);
@@ -570,7 +579,7 @@ exports.updateTask = async (req, res) => {
             SET 
                 notes = $1, 
                 task_due_date = $2, 
-                updated_date = NOW()
+                updated_date = CURRENT_DATE
             WHERE transaction_detail_id = $3 AND transaction_id = $4 AND stage_id = $5
             RETURNING transaction_detail_id, task_name, task_status, stage_id, notes, task_due_date;
             `;
@@ -601,7 +610,7 @@ exports.updateTask = async (req, res) => {
 
 exports.duplicateTask = async (req, res) => {
     const { transaction_detail_id } = req.params;
-    const { transaction_id, stage_id, taskDueDate, count, frequency } = req.body;
+    const { transaction_id, stage_id, taskDueDate, count, repeatInterval, frequency } = req.body;
 
     try {
         // Fetch the row to duplicate
@@ -619,14 +628,14 @@ exports.duplicateTask = async (req, res) => {
         const taskToDuplicate = fetchResult.rows[0];
 
         // Frequency-based date increment logic
-        const calculateNewDate = (currentDate, frequency, increment) => {
+        const calculateNewDate = (currentDate, repeatInterval, frequency, increment) => {
             const newDate = new Date(currentDate); // Clone the current date
-            if (frequency === 'Every two days') {
-                newDate.setDate(newDate.getDate() + 2 * increment);
-            } else if (frequency === 'Every week') {
-                newDate.setDate(newDate.getDate() + 7 * increment);
-            } else if (frequency === 'Every month') {
-                newDate.setMonth(newDate.getMonth() + 1 * increment);
+            if (frequency === 'day') {
+                newDate.setDate(newDate.getDate() + repeatInterval * increment);
+            } else if (frequency === 'week') {
+                newDate.setDate(newDate.getDate() + (repeatInterval*7) * increment);
+            } else if (frequency === 'month') {
+                newDate.setMonth(newDate.getMonth() + repeatInterval * increment);
             }
             return newDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
         };
@@ -635,7 +644,7 @@ exports.duplicateTask = async (req, res) => {
 
         // Duplicate the task `count` number of times
         for (let i = 1; i <= count; i++) {
-            const newDueDate = calculateNewDate(taskDueDate, frequency, i);
+            const newDueDate = calculateNewDate(taskDueDate, repeatInterval, frequency, i);
 
             // Get the highest transaction_detail_id for the given transaction_id
             const getMaxIdQuery = `
@@ -671,9 +680,9 @@ exports.duplicateTask = async (req, res) => {
                 taskToDuplicate.stage_id,
                 taskToDuplicate.task_id,
                 taskToDuplicate.task_name,
-                taskToDuplicate.task_status,
+                'Open',
                 newDueDate,
-                taskToDuplicate.notes,
+                null,
                 taskToDuplicate.list_price,
                 taskToDuplicate.sale_price,
                 taskToDuplicate.state_id,
@@ -698,4 +707,3 @@ exports.duplicateTask = async (req, res) => {
         });
     }
 };
-

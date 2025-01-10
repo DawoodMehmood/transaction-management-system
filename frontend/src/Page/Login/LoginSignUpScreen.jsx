@@ -36,7 +36,7 @@ const LoginSignUpScreen = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showSuccessToast('Login successful!');
+        // showSuccessToast('Login successful!');
         localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/Transactions'); // Redirect to Transactions on success
       } else {
@@ -68,7 +68,7 @@ const LoginSignUpScreen = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showSuccessToast('Signup successful!');
+        // showSuccessToast('Signup successful!');
         navigate('/'); // Redirect to homepage on success
       } else {
         throw new Error(data.message || 'Signup failed');

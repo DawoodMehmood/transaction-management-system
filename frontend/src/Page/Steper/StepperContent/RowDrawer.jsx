@@ -3,6 +3,7 @@ import { getServerUrl } from '../../../utility/getServerUrl';
 import { showErrorToast, showSuccessToast } from '../../../toastConfig';
 import DatePicker from 'react-datepicker';
 import { CalendarIcon } from '@heroicons/react/outline';
+import { formatDate } from '../../../utility/getFormattedDate';
 
 const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,7 @@ const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
       );
 
       if (response.ok) {
-        showSuccessToast('Task updated successfully.');
+        // showSuccessToast('Task updated successfully.');
         await onUpdate(); // Update the task list
         closeModal(); // Close the modal
       } else {
@@ -68,7 +69,7 @@ const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
           className="font-normal text-lg ms-4 cursor-pointer"
           onClick={() => setShowDatePicker(true)}
         >
-          {date ? date.toLocaleDateString() : 'Select a date'}
+          {date ? formatDate(date) : 'Select a date'}
         </p>
         {showDatePicker && (
           <div className="absolute bottom-full left-0 z-10">

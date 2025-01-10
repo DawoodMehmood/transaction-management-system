@@ -122,7 +122,7 @@ exports.getTransactionDatesByStage = async (req, res) => {
             SELECT 
                 d.state_id, 
                 d.date_name, 
-                d.entered_date, 
+                d.entered_date::TEXT AS entered_date, 
                 d.created_date, 
                 d.created_by, 
                 d.updated_date, 
@@ -189,28 +189,37 @@ exports.getAllTransactionsCalendar = async (req, res) => {
                 t.zip, 
                 t.list_price, 
                 s.state AS state_name, 
-                d.date_name, 
-                d.entered_date, 
+                d.date_name,
+                d.entered_date::TEXT AS entered_date, 
                 td.task_id, 
                 td.transaction_detail_id,
                 td.task_name, 
                 td.task_status,
-                td.stage_id  -- Add stage_id here
+                td.stage_id,  
+                COALESCE(
+                    td.task_due_date::TEXT, 
+                    ((d.entered_date::DATE + tk.task_days * INTERVAL '1 day')::TEXT)
+                ) AS task_due_date
             FROM 
                 tkg.transaction_detail td
             LEFT JOIN 
                 tkg.dates d ON 
                     td.state_id = d.state_id AND 
                     td.date_id = d.date_id AND 
-                    td.transaction_id = d.transaction_id
+                    td.transaction_id = d.transaction_id AND 
+                    td.stage_id = d.stage_id
             LEFT JOIN 
                 tkg.transaction t ON t.transaction_id = td.transaction_id
             LEFT JOIN 
+                tkg.tasks tk ON td.task_id = tk.task_id
+                AND td.state_id = tk.state 
+                AND td.stage_id = tk.stage_id
+            LEFT JOIN 
                 tkg.state s ON t.state = s.state
             WHERE 
-                d.entered_date IS NOT NULL  -- Ensure entered_date is not null
+                td.date_id = d.date_id
             ORDER BY 
-                t.transaction_id, d.entered_date;
+                task_due_date;
         `;
 
         const result = await pool.query(query);
@@ -224,7 +233,7 @@ exports.getAllTransactionsCalendar = async (req, res) => {
         // Group transactions by transaction_id
         const groupedTransactions = result.rows.reduce((acc, row) => {
             const { transaction_id, transaction_name, address1, address2, city, state, zip, list_price, state_name } = row;
-            const { date_name, entered_date, task_id, task_name, task_status, stage_id, transaction_detail_id } = row;
+            const { date_name, task_due_date, task_id, task_name, task_status, stage_id, transaction_detail_id } = row;
 
             // Initialize the transaction group if it doesn't exist
             if (!acc[transaction_id]) {
@@ -244,7 +253,7 @@ exports.getAllTransactionsCalendar = async (req, res) => {
             // Add date, task details, and stage_id directly to the transaction
             acc[transaction_id].dates.push({
                 date_name,
-                entered_date,
+                task_due_date,
                 stage_id,  // Include stage_id
                 task: {
                     task_id,

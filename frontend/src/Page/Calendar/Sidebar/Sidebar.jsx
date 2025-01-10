@@ -29,18 +29,18 @@ const Sidebar = ({
 
   // Calculate counts for each task category based on "Opened" status
   const counts = {
-    alltasks: tasks.filter(task => task.taskStatus === 'Open').length,
+    alltasks: tasks.filter((task) => task.taskStatus === 'Open').length,
     Scheduled: tasks.filter(
-      task => task.taskStatus === 'Open' && task.category === 'Scheduled'
+      (task) => task.taskStatus === 'Open' && task.category === 'Scheduled'
     ).length,
-    today: tasks.filter(task => {
+    today: tasks.filter((task) => {
       const taskDate = new Date(task.enteredDate);
       return (
         task.taskStatus === 'Open' &&
         taskDate.toDateString() === new Date().toDateString()
       );
     }).length,
-    thisWeek: tasks.filter(task => {
+    thisWeek: tasks.filter((task) => {
       const taskDate = new Date(task.enteredDate);
       const now = new Date();
       const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -53,7 +53,7 @@ const Sidebar = ({
         taskDate <= endOfWeek
       );
     }).length,
-    thisMonth: tasks.filter(task => {
+    thisMonth: tasks.filter((task) => {
       const taskDate = new Date(task.enteredDate);
       const now = new Date();
       return (
@@ -62,11 +62,13 @@ const Sidebar = ({
         taskDate.getFullYear() === now.getFullYear()
       );
     }).length,
-    overdue: tasks.filter(task => {
+    overdue: tasks.filter((task) => {
       const taskDate = new Date(task.enteredDate);
-      return task.taskStatus === 'Open' && taskDate < new Date();
+      const oneDayBeforeNow = new Date();
+      oneDayBeforeNow.setDate(oneDayBeforeNow.getDate() - 1);
+      return task.taskStatus === 'Open' && taskDate <= oneDayBeforeNow;
     }).length,
-    finished: tasks.filter(task => task.taskStatus === 'Completed').length,
+    finished: tasks.filter((task) => task.taskStatus === 'Completed').length,
   };
 
   return (
@@ -89,8 +91,8 @@ const Sidebar = ({
       >
         {sidebarItems.map((section, sectionIndex) => (
           <div key={sectionIndex}>
-            <h3 className='font-bold text-white uppercase'>{section.title}</h3>
-            <ul className='mt-2 mb-6'>
+            <h3 className="font-bold text-white uppercase">{section.title}</h3>
+            <ul className="mt-2 mb-6">
               {section.subItems.map((item, idx) => {
                 const isSelected =
                   section.title === 'My Tasks'
@@ -117,7 +119,7 @@ const Sidebar = ({
                     }`}
                   >
                     {item.name}
-                    <span className='text-gray-400'>{count}</span>
+                    <span className="text-gray-400">{count}</span>
                   </li>
                 );
               })}
@@ -135,7 +137,7 @@ const Sidebar = ({
                 }}
               >
                 This Week
-                <span className='text-gray-400'>{counts.thisWeek}</span>
+                <span className="text-gray-400">{counts.thisWeek}</span>
               </li>
               <li
                 className={`cursor-pointer flex justify-between items-center mt-1 px-2 py-1 rounded ${
@@ -149,7 +151,7 @@ const Sidebar = ({
                 }}
               >
                 This Month
-                <span className='text-gray-400'>{counts.thisMonth}</span>
+                <span className="text-gray-400">{counts.thisMonth}</span>
               </li>
             </ul>
           </div>
@@ -157,7 +159,7 @@ const Sidebar = ({
       </div>
       {isOpen && (
         <div
-          className='fixed inset-0 bg-black opacity-50 z-30 md:hidden'
+          className="fixed inset-0 bg-black opacity-50 z-30 md:hidden"
           onClick={toggleSidebar}
         ></div>
       )}

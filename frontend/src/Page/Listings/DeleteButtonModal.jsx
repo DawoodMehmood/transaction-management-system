@@ -72,7 +72,7 @@ const DeleteTransactionForm = ({ closeModal }) => {
       );
 
       if (response.ok) {
-        showSuccessToast('Transactions deleted successfully.');
+        // showSuccessToast('Transactions deleted successfully.');
         // Update UI: Remove deleted transactions from state
         setTransactions((prev) =>
           prev.filter(
@@ -109,10 +109,10 @@ const DeleteTransactionForm = ({ closeModal }) => {
             <thead>
               <tr className="bg-white text-nowrap">
                 <th></th>
+                <th className="px-4 py-2 text-left text-gray-700">Lead</th>
                 <th className="px-4 py-2 text-left text-gray-700">
                   Transaction Name
                 </th>
-                <th className="px-4 py-2 text-left text-gray-700">Lead</th>
               </tr>
             </thead>
             <tbody>
@@ -135,10 +135,10 @@ const DeleteTransactionForm = ({ closeModal }) => {
                       />
                     </label>
                   </td>
-                  <td className="px-4 py-2 text-gray-600">{row.fullAddress}</td>
                   <td className="px-4 py-2 text-gray-600">
                     {row.first_name} {row.last_name}
                   </td>
+                  <td className="px-4 py-2 text-gray-600">{row.fullAddress}</td>
                 </tr>
               ))}
             </tbody>

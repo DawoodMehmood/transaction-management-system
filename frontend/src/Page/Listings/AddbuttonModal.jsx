@@ -23,7 +23,7 @@ const TransactionForm = ({ closeModal }) => {
   const [address2, setAddress2] = useState('');
   const [city, setCity] = useState('');
   const [zip, setZip] = useState('');
-  const [listPrice, setListPrice] = useState('');
+  const [listPrice, setListPrice] = useState(null);
   const [stage_id, setStageId] = useState(''); // Store stage_id
   const [createdBy, setCreatedBy] = useState(''); // Editable createdBy field
   const [state, setState] = useState('IL'); // Default state set to 'IL'
@@ -68,6 +68,11 @@ const TransactionForm = ({ closeModal }) => {
       stage_id,
       createdBy,
     });
+
+    if (!listPrice || isNaN(listPrice) || Number(listPrice) <= 0) {
+      showErrorToast('Price must be a valid number.');
+      return;
+    }
 
     if (
       !firstName ||
@@ -123,7 +128,7 @@ const TransactionForm = ({ closeModal }) => {
         console.log('Full address:', fullAddress);
         console.log('Price:', price);
 
-        showSuccessToast('Transaction saved successfully!');
+        // showSuccessToast('Transaction saved successfully!');
         let currentStep = 1;
         navigate('/StepperSection', {
           state: {
@@ -139,6 +144,7 @@ const TransactionForm = ({ closeModal }) => {
         throw new Error('Failed to save transaction');
       }
     } catch (error) {
+      console.error('Error saving transaction:', error);
       showErrorToast('Error saving transaction. Please try again.');
     }
   };
@@ -252,6 +258,19 @@ const TransactionForm = ({ closeModal }) => {
           type="number"
           value={listPrice}
           onChange={(e) => setListPrice(e.target.value)}
+          onKeyDown={(e) => {
+            if (
+              e.key === '-' ||
+              e.key === ',' ||
+              e.key === '+' ||
+              e.key === '_' ||
+              e.key === '/' ||
+              e.key === '#' ||
+              e.key === '='
+            ) {
+              e.preventDefault();
+            }
+          }}
           className="w-full px-4 py-2 border border-gray-300 rounded-md"
         />
       </div>

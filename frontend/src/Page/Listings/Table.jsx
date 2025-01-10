@@ -55,7 +55,7 @@ const TableWithToolbar = ({ refreshKey }) => {
     try {
       const response = await fetch(`${getServerUrl()}/api/transactions`);
       const data = await response.json();
-      showSuccessToast(data.message);
+      // showSuccessToast(data.message);
 
       const mappedData = data.transactions.map((transaction) => {
         const address1 = transaction.address1 || ''; // Set empty string if null/undefined

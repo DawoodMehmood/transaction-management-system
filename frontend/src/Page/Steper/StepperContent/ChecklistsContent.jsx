@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { getServerUrl } from '../../../utility/getServerUrl';
+import { cleanText } from '../../../utility/getCleanText.js';
 import { AnimatePresence, motion } from 'framer-motion';
 import RowForm from './RowDrawer.jsx';
-import {
-  DocumentDuplicateIcon,
-  TrashIcon,
-  XIcon,
-} from '@heroicons/react/outline';
+import { TrashIcon, XIcon } from '@heroicons/react/outline';
 import { showSuccessToast } from './../../../toastConfig.js';
+import { formatDate } from '../../../utility/getFormattedDate.js';
 
 const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
   console.log('Checklist content', currentStep, transactionId);
@@ -48,12 +46,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
   ) => {
     if (loadingTransactionDetailId === transactionDetailId) return;
 
-    if (taskStatus === 'Completed' && !skipReason) {
-      // Open skip modal if unchecking a completed task
-      setTaskToSkip({ transactionDetailId, stageId });
-      setShowSkipModal(true);
-      return;
-    }
+    setTaskToSkip({ transactionDetailId, stageId });
 
     setLoadingTransactionDetailId(transactionDetailId);
     const updatedStatus = taskStatus === 'Completed' ? 'Open' : 'Completed';
@@ -74,7 +67,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
       );
 
       if (response.ok) {
-        showSuccessToast('Task status updated successfully.');
+        // showSuccessToast('Task status updated successfully.');
         await fetchData();
       } else {
         console.error('Failed to update task status');
@@ -91,6 +84,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
     stageId,
     taskDueDate,
     count,
+    repeatInterval,
     frequency
   ) => {
     try {
@@ -104,13 +98,14 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
             stage_id: stageId,
             taskDueDate,
             count,
+            repeatInterval,
             frequency,
           }),
         }
       );
 
       if (response.ok) {
-        showSuccessToast('Tasks duplicated successfully.');
+        // showSuccessToast('Tasks duplicated successfully.');
         await fetchData();
       } else {
         console.error('Failed to duplicate tasks');
@@ -134,7 +129,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
     setShowRowDrawer(false);
   };
 
-  const handleDuplicateConfirm = (count, frequency) => {
+  const handleDuplicateConfirm = (count, repeatInterval, frequency) => {
     if (taskToDuplicate) {
       const { transactionDetailId, stageId, taskDueDate } = taskToDuplicate;
       handleDuplicateSubmit(
@@ -142,6 +137,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
         stageId,
         taskDueDate,
         count,
+        repeatInterval,
         frequency
       );
       setTaskToDuplicate(null);
@@ -150,7 +146,9 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
     setShowRowDrawer(false);
   };
 
-  const sortTasks = (tasks) => tasks.sort((a, b) => a.task_days - b.task_days);
+  // Sort tasks by task_due_date (ascending)
+  const sortTasks = (tasks) =>
+    tasks.sort((a, b) => new Date(a.task_due_date) - new Date(b.task_due_date));
 
   // Render tasks for each stage
   const renderStageContent = (stage) => {
@@ -203,7 +201,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                       </label>
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {task.task_name}{' '}
+                      {cleanText(task.task_name)}{' '}
                       {task.skip_reason && task.task_status !== 'Completed' && (
                         <div className="text-sm text-gray-500">
                           Task is skipped with reason: {task.skip_reason}
@@ -211,7 +209,8 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                       )}
                     </td>
                     <td className="py-2 px-2 text-nowrap border-b">
-                      {task.task_due_date
+                      {formatDate(new Date(task.task_due_date))}
+                      {/* {task.task_due_date
                         ? (() => {
                             const daysRemaining = Math.ceil(
                               (new Date(task.task_due_date).getTime() -
@@ -230,7 +229,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                               }`;
                             }
                           })()
-                        : 'N/A'}
+                        : 'N/A'} */}
                     </td>
                   </tr>
                 ))}
@@ -383,8 +382,21 @@ const RowDrawer = ({
                       }`}
                     />
                   </div>
-                  <div title="Duplicate Task" onClick={handleDuplicateClick}>
-                    <DocumentDuplicateIcon className="w-6 h-6 text-gray-500 cursor-pointer" />
+                  <div title="Repeat Task" onClick={handleDuplicateClick}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="size-6 text-gray-500 cursor-pointer"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                      />
+                    </svg>
                   </div>
                   <XIcon
                     className="w-6 h-6 text-gray-500 cursor-pointer"
@@ -453,7 +465,7 @@ const SkipModal = ({ showSkipModal, setShowSkipModal, onConfirm }) => {
                 className="bg-gray-700 text-white px-4 py-2 rounded"
                 onClick={handleSubmit}
               >
-                Skip
+                Save
               </button>
             </div>
           </div>
@@ -469,15 +481,16 @@ const DuplicateModal = ({
   onConfirm,
 }) => {
   const [count, setCount] = useState(1); // Default count is 1
-  const [frequency, setFrequency] = useState('Every month'); // Default frequency
+  const [repeatInterval, setRepeatInterval] = useState(1); // Default count is 1
+  const [frequency, setFrequency] = useState('day'); // Default frequency
 
   const handleClose = () => {
     setShowDuplicateModal(false);
   };
 
   const handleSubmit = () => {
-    if (count > 0 && frequency) {
-      onConfirm(count, frequency); // Pass count and frequency to the parent handler
+    if (count > 0 && repeatInterval > 0 && frequency) {
+      onConfirm(count, repeatInterval, frequency); // Pass count and frequency to the parent handler
       handleClose();
     } else {
       alert('Please provide valid inputs.');
@@ -494,10 +507,10 @@ const DuplicateModal = ({
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
         >
           <div className="bg-white rounded-lg p-6 w-1/3">
-            <h3 className="text-lg font-bold mb-4">Duplicate Task</h3>
+            <h3 className="text-lg font-bold mb-4">Repeat Task</h3>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                How many times to duplicate:
+                How many times to repeat:
               </label>
               <input
                 type="number"
@@ -509,19 +522,60 @@ const DuplicateModal = ({
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Frequency:
+                Repeat after interval:
               </label>
-              <select
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value)}
-                className="w-full border rounded p-2"
-              >
-                <option value="Every two days">Every two days</option>
-                <option value="Every week">Every week</option>
-                <option value="Every month">Every month</option>
-              </select>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  value={repeatInterval}
+                  onChange={(e) => setRepeatInterval(parseInt(e.target.value))}
+                  className="w-1/3 border rounded p-2"
+                  min="1"
+                />
+                {/* <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-2/3 border rounded p-2"
+                >
+                  <option value="day">Day(s)</option>
+                  <option value="week">Week(s)</option>
+                  <option value="month">Month(s)</option>
+                </select> */}
+                <div className="w-2/3 flex">
+                  <button
+                    onClick={() => setFrequency('day')}
+                    className={`p-2 w-full ${
+                      frequency === 'day'
+                        ? 'bg-gray-500 text-white'
+                        : 'bg-gray-300'
+                    }`}
+                  >
+                    Day(s)
+                  </button>
+                  <button
+                    onClick={() => setFrequency('week')}
+                    className={`p-2 border border-x-gray-500 w-full ${
+                      frequency === 'week'
+                        ? 'bg-gray-500 text-white'
+                        : 'bg-gray-300'
+                    }`}
+                  >
+                    Week(s)
+                  </button>
+                  <button
+                    onClick={() => setFrequency('month')}
+                    className={`p-2 w-full ${
+                      frequency === 'month'
+                        ? 'bg-gray-500 text-white'
+                        : 'bg-gray-300'
+                    }`}
+                  >
+                    Month(s)
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-end mt-4 space-x-2">
+            <div className="flex justify-end mt-6 space-x-2">
               <button
                 className="bg-gray-300 text-gray-800 font-semibold px-4 py-2 rounded"
                 onClick={handleClose}
@@ -532,7 +586,7 @@ const DuplicateModal = ({
                 className="bg-gray-700 text-white px-4 py-2 rounded"
                 onClick={handleSubmit}
               >
-                Duplicate
+                Save
               </button>
             </div>
           </div>

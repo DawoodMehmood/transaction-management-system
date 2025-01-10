@@ -1,14 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { getServerUrl } from '../../utility/getServerUrl';
 import { showErrorToast, showSuccessToast } from '../../toastConfig';
-
-// Helper function to format dates
-const formatDate = (date) =>
-  date.toLocaleDateString('en-US', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+import { cleanText } from '../../utility/getCleanText';
+import { formatDate } from '../../utility/getFormattedDate';
 
 // API call to fetch tasks
 export const fetchTasks = async () => {
@@ -27,7 +21,7 @@ export const fetchTasks = async () => {
         transactionDetailId: date.task.transaction_detail_id,
         address: `${transaction.address}, ${transaction.city}, ${transaction.state}`,
         taskName: date.task.task_name,
-        enteredDate: new Date(date.entered_date),
+        enteredDate: date.task_due_date ? new Date(date.task_due_date) : null,
         taskStatus: date.task.task_status,
       }))
     );
@@ -67,7 +61,7 @@ const updateTaskStatus = async (
     );
 
     if (response.ok) {
-      showSuccessToast('Task status updated successfully!');
+      // showSuccessToast('Task status updated successfully!');
       reloadTasks(true); // Call reloadTasks with 'true' on success
     } else {
       const errorMessage = await response.text();
@@ -93,12 +87,12 @@ const TaskTable = ({
     <table className="w-full border border-gray-200 rounded-lg">
       <thead>
         <tr className="border-b text-nowrap">
-          <th className="px-4 py-2 text-left text-gray-600">Transaction</th>
+          <th className="px-4 py-2 text-left text-gray-600">Task Date</th>
           <th className="px-4 py-2 text-left text-gray-600">Address</th>
           <th className="px-4 py-2 text-left text-gray-600">
             Task Description
           </th>
-          <th className="px-4 py-2 text-left text-gray-600">Task Days</th>
+          <th className="px-4 py-2 text-left text-gray-600">Lead</th>
         </tr>
       </thead>
       <tbody>
@@ -114,24 +108,24 @@ const TaskTable = ({
                     type="checkbox"
                     onChange={() => onTaskStatusChange(task)}
                     disabled={
-                      loadingTransactionDetailId === task.transactionId + task.transactionDetailId ||
+                      loadingTransactionDetailId ===
+                        task.transactionId + task.transactionDetailId ||
                       task.task_status === 'Completed'
                     }
                     checked={task.taskStatus === 'Completed'}
                     className="appearance-none w-4 h-4 border border-gray-400 rounded checked:bg-blue-600 checked:border-transparent"
                   />
-                  {loadingTransactionDetailId === task.transactionId + task.transactionDetailId && (
+                  {loadingTransactionDetailId ===
+                    task.transactionId + task.transactionDetailId && (
                     <div className="animate-spin absolute -top-0 left-5 rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
                   )}
                 </div>
               )}
-              <span className="ms-4">{task.transactionName}</span>
+              <span className="ms-2">{formatDate(task.enteredDate)}</span>
             </td>
             <td className="px-4 py-3">{task.address}</td>
-            <td className="px-4 py-3">{task.taskName}</td>
-            <td className="px-4 py-3 text-nowrap">
-              {formatDate(task.enteredDate)}
-            </td>
+            <td className="px-4 py-3">{cleanText(task.taskName)}</td>
+            <td className="px-4 py-3 text-nowrap">{task.transactionName}</td>
           </tr>
         ))}
       </tbody>
@@ -142,7 +136,8 @@ const TaskTable = ({
 // TaskCategory Component
 const TaskCategory = ({ filterTasks, showCheckbox, reloadTasks }) => {
   const [tasks, setTasks] = useState([]);
-  const [loadingTransactionDetailId, setLoadingTransactionDetailId] = useState(null);
+  const [loadingTransactionDetailId, setLoadingTransactionDetailId] =
+    useState(null);
 
   const fetchAndSetTasks = async (shouldReload = false) => {
     if (shouldReload) {

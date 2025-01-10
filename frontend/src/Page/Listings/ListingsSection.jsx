@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getServerUrl } from '../../utility/getServerUrl';
 import { getFormattedPrice } from '../../utility/getFormattedPrice';
 
-const ListingsSection = () => {
+const ListingsSection = ({ refreshKey }) => {
   const [data, setData] = useState([
     { title: 'All Transactions', transaction_count: 0, amount: '$0' },
     { title: 'Pre-Listing', transaction_count: 0, amount: '$0' },
@@ -62,7 +62,7 @@ const ListingsSection = () => {
     };
 
     fetchPriceSummary();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <div>

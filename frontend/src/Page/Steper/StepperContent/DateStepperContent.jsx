@@ -3,6 +3,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { getServerUrl } from '../../../utility/getServerUrl';
 import { showSuccessToast, showWarningToast } from '../../../toastConfig';
+import { formatDate } from '../../../utility/getFormattedDate';
 
 const DateFields = ({ transactionId, createdBy, state, stageId }) => {
   console.log('Date content', transactionId, createdBy, state, stageId);
@@ -44,7 +45,6 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
       const formattedDates = data.dates.map((date) => ({
         ...date,
         entered_date: date.entered_date ? new Date(date.entered_date) : null,
-        date_value: date.date_value ? new Date(date.date_value) : null,
       }));
 
       setTransactionDates(formattedDates);
@@ -100,8 +100,7 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
       stage_id: stageId,
       dates: datesToAdd,
     };
-    
-    
+
     setErrorMessage('');
     if (datesToAdd.length === 0) {
       showWarningToast('Please change at least one date before submitting.');
@@ -116,7 +115,7 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
       });
 
       if (response.ok) {
-        showSuccessToast('Dates added or updated successfully.');
+        // showSuccessToast('Dates added or updated successfully.');
         fetchTransactionDates(); // Refresh transaction dates
       } else {
         throw new Error('Failed to add or update dates.');
@@ -132,17 +131,15 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
   // Get the displayed date for each field
   const getDisplayedDate = (index) => {
     const selectedDate = selectedDates[index];
-    if (selectedDate) return selectedDate.toLocaleDateString();
+    if (selectedDate) return formatDate(selectedDate);
 
     const transactionDate = transactionDates.find(
       (date) => date.date_name == dateFields[index]?.date_name
     );
     if (transactionDate) {
-      return (
-        transactionDate.entered_date?.toLocaleDateString() ||
-        transactionDate.date_value?.toLocaleDateString() ||
-        'N/A'
-      );
+      return transactionDate.entered_date
+        ? formatDate(new Date(transactionDate.entered_date))
+        : 'N/A';
     }
 
     return 'N/A';

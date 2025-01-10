@@ -114,7 +114,7 @@ const Stepper = ({
         );
         setStepsCompletion(updatedStepsCompletion);
         setSelectedOption('Dates');
-        showSuccessToast('Stage updated successfully');
+        // showSuccessToast('Stage updated successfully');
       } else {
         showErrorToast('Error updating stage');
       }
