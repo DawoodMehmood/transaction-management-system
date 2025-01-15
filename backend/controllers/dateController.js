@@ -122,7 +122,7 @@ exports.getTransactionDatesByStage = async (req, res) => {
             SELECT 
                 d.state_id, 
                 d.date_name, 
-                d.entered_date::TEXT AS entered_date, 
+                d.entered_date::DATE::TEXT AS entered_date, 
                 d.created_date, 
                 d.created_by, 
                 d.updated_date, 
@@ -190,15 +190,15 @@ exports.getAllTransactionsCalendar = async (req, res) => {
                 t.list_price, 
                 s.state AS state_name, 
                 d.date_name,
-                d.entered_date::TEXT AS entered_date, 
+                d.entered_date::DATE::TEXT AS entered_date, 
                 td.task_id, 
                 td.transaction_detail_id,
                 td.task_name, 
                 td.task_status,
                 td.stage_id,  
                 COALESCE(
-                    td.task_due_date::TEXT, 
-                    ((d.entered_date::DATE + tk.task_days * INTERVAL '1 day')::TEXT)
+                    td.task_due_date::DATE::TEXT, 
+                    ((d.entered_date::DATE + tk.task_days * INTERVAL '1 day')::DATE::TEXT)
                 ) AS task_due_date
             FROM 
                 tkg.transaction_detail td

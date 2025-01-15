@@ -44,7 +44,9 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
 
       const formattedDates = data.dates.map((date) => ({
         ...date,
-        entered_date: date.entered_date ? new Date(date.entered_date) : null,
+        entered_date: date.entered_date
+          ? new Date(`${date.entered_date}T00:00:00Z`) // Treat as UTC
+          : null,
       }));
 
       setTransactionDates(formattedDates);
@@ -62,8 +64,12 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
 
   // Handle date selection
   const handleDateChange = (date, index) => {
+    const utcDate = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+    );
+
     const updatedDates = [...selectedDates];
-    updatedDates[index] = date;
+    updatedDates[index] = utcDate; // Store as Date object
     setSelectedDates(updatedDates);
     setOpenPickerIndex(null);
   };
@@ -76,15 +82,26 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
         if (!selectedDate) return null;
 
         // Convert to YYYY-MM-DD format (date only, no time zone influence)
-        const formattedDate = `${selectedDate.getFullYear()}-${(
-          selectedDate.getMonth() + 1
-        )
-          .toString()
-          .padStart(2, '0')}-${selectedDate
-          .getDate()
-          .toString()
-          .padStart(2, '0')}`;
+        // const formattedDate = `${selectedDate.getFullYear()}-${(
+        //   selectedDate.getMonth() + 1
+        // )
+        //   .toString()
+        //   .padStart(2, '0')}-${selectedDate
+        //   .getDate()
+        //   .toString()
+        //   .padStart(2, '0')}`;
+        console.log('selectedDate', selectedDate);
 
+        // const formattedDate = new Date(
+        //   Date.UTC(
+        //     selectedDate.getFullYear(),
+        //     selectedDate.getMonth(),
+        //     selectedDate.getDate()
+        //   )
+        // )
+        //   .toISOString()
+        //   .split('T')[0]; // Extract only the date part (YYYY-MM-DD)
+        const formattedDate = formatDate(selectedDate);
         return {
           date_id: field.date_id,
           date_name: field.date_name,
@@ -136,10 +153,8 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
     const transactionDate = transactionDates.find(
       (date) => date.date_name == dateFields[index]?.date_name
     );
-    if (transactionDate) {
-      return transactionDate.entered_date
-        ? formatDate(new Date(transactionDate.entered_date))
-        : 'N/A';
+    if (transactionDate?.entered_date) {
+      return formatDate(transactionDate.entered_date);
     }
 
     return 'N/A';

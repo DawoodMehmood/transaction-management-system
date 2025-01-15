@@ -21,7 +21,9 @@ export const fetchTasks = async () => {
         transactionDetailId: date.task.transaction_detail_id,
         address: `${transaction.address}, ${transaction.city}, ${transaction.state}`,
         taskName: date.task.task_name,
-        enteredDate: date.task_due_date ? new Date(date.task_due_date) : null,
+        enteredDate: date.task_due_date
+          ? new Date(`${date.task_due_date}T00:00:00Z`)
+          : null,
         taskStatus: date.task.task_status,
       }))
     );

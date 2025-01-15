@@ -243,8 +243,8 @@ exports.getChecklistDetails = async (req, res) => {
                 td.notes, 
                 t.task_days,
                 COALESCE(
-                    td.task_due_date::TEXT, 
-                    ((d.entered_date::DATE + t.task_days * INTERVAL '1 day')::TEXT)
+                    td.task_due_date::DATE::TEXT, 
+                    ((d.entered_date::DATE + t.task_days * INTERVAL '1 day')::DATE::TEXT)
                 ) AS task_due_date
             FROM 
                 tkg.transaction_detail td
@@ -629,16 +629,22 @@ exports.duplicateTask = async (req, res) => {
 
         // Frequency-based date increment logic
         const calculateNewDate = (currentDate, repeatInterval, frequency, increment) => {
-            const newDate = new Date(currentDate); // Clone the current date
+            console.log('currentDate:', currentDate);
+            // Treat the input date as UTC by appending T00:00:00Z
+            const utcDate = new Date(currentDate); // Ensure the input date is UTC
+            console.log('utcDate:', utcDate);
+            // Calculate the new date based on the frequency
             if (frequency === 'day') {
-                newDate.setDate(newDate.getDate() + repeatInterval * increment);
+                utcDate.setUTCDate(utcDate.getUTCDate() + repeatInterval * increment);
             } else if (frequency === 'week') {
-                newDate.setDate(newDate.getDate() + (repeatInterval*7) * increment);
+                utcDate.setUTCDate(utcDate.getUTCDate() + (repeatInterval * 7) * increment);
             } else if (frequency === 'month') {
-                newDate.setMonth(newDate.getMonth() + repeatInterval * increment);
+                utcDate.setUTCMonth(utcDate.getUTCMonth() + repeatInterval * increment);
             }
-            return newDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
-        };
+        
+            // Return the date in YYYY-MM-DD format
+            return utcDate.toISOString().split('T')[0];
+        };        
 
         const duplicatedTasks = [];
 

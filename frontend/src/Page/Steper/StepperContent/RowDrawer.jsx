@@ -8,7 +8,7 @@ import { formatDate } from '../../../utility/getFormattedDate';
 const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(
-    task.task_due_date ? new Date(task.task_due_date) : null
+    task.task_due_date ? new Date(`${task.task_due_date}T00:00:00Z`) : null
   );
   const [notes, setNotes] = useState(task.notes || '');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -19,6 +19,8 @@ const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
         ? new Date(
             Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
           )
+            .toISOString()
+            .split('T')[0]
         : null;
 
       const response = await fetch(

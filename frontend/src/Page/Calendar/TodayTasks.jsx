@@ -73,7 +73,7 @@ export const TodayTasks = ({ setupdatedLoading }) => {
                 transaction_detail_id: date.task.transaction_detail_id,
                 task_status: date.task.task_status,
                 enteredDate: date.task_due_date
-                  ? new Date(date.task_due_date)
+                  ? new Date(`${date.task_due_date}T00:00:00Z`)
                   : null,
               }))
             )

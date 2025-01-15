@@ -148,7 +148,11 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
 
   // Sort tasks by task_due_date (ascending)
   const sortTasks = (tasks) =>
-    tasks.sort((a, b) => new Date(a.task_due_date) - new Date(b.task_due_date));
+    tasks.sort(
+      (a, b) =>
+        new Date(`${a.task_due_date}T00:00:00Z`) -
+        new Date(`${b.task_due_date}T00:00:00Z`)
+    );
 
   // Render tasks for each stage
   const renderStageContent = (stage) => {
@@ -209,7 +213,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                       )}
                     </td>
                     <td className="py-2 px-2 text-nowrap border-b">
-                      {formatDate(new Date(task.task_due_date))}
+                      {formatDate(new Date(`${task.task_due_date}T00:00:00Z`))}
                       {/* {task.task_due_date
                         ? (() => {
                             const daysRemaining = Math.ceil(
@@ -335,7 +339,7 @@ const RowDrawer = ({
     }
   };
   const handleDuplicateClick = () => {
-    const date = new Date(task.task_due_date);
+    const date = new Date(`${task.task_due_date}T00:00:00Z`);
     setTaskToDuplicate({
       transactionDetailId: task.transaction_detail_id,
       stageId: task.stage_id,
