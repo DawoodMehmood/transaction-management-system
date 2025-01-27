@@ -198,7 +198,7 @@ exports.getAllTransactionsCalendar = async (req, res) => {
                 td.stage_id,  
                 COALESCE(
                     td.task_due_date::DATE::TEXT, 
-                    ((d.entered_date::DATE + tk.task_days * INTERVAL '1 day')::DATE::TEXT)
+                    ((d.entered_date::DATE + td.task_days * INTERVAL '1 day')::DATE::TEXT)
                 ) AS task_due_date
             FROM 
                 tkg.transaction_detail td
@@ -210,10 +210,6 @@ exports.getAllTransactionsCalendar = async (req, res) => {
                     td.stage_id = d.stage_id
             LEFT JOIN 
                 tkg.transaction t ON t.transaction_id = td.transaction_id
-            LEFT JOIN 
-                tkg.tasks tk ON td.task_id = tk.task_id
-                AND td.state_id = tk.state 
-                AND td.stage_id = tk.stage_id
             LEFT JOIN 
                 tkg.state s ON t.state = s.state
             WHERE 

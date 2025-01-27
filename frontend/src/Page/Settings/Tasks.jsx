@@ -48,6 +48,8 @@ export const Tasks = ({ tasks, dateFields, reload }) => {
       showErrorToast('Error deleting task.');
     }
   };
+
+  const sortedTasks = [...tasks].sort((a, b) => a.task_id - b.task_id);
   return (
     <div>
       <div className="overflow-x-auto bg-white">
@@ -59,10 +61,17 @@ export const Tasks = ({ tasks, dateFields, reload }) => {
                 Date Binding
               </th>
               <th className="px-4 py-2 text-left text-gray-600">Task Name</th>
+              <th className="px-4 py-2 text-left text-gray-600">Repeatable</th>
+              <th className="px-4 py-2 text-left text-gray-600">
+                Repeat Times
+              </th>
+              <th className="px-4 py-2 text-left text-gray-600">
+                Repeat After
+              </th>
             </tr>
           </thead>
           <tbody>
-            {tasks.map((task) => (
+            {sortedTasks.map((task) => (
               <tr
                 key={task.task_id + task.stage_id}
                 className="border-b text-nowrap hover:bg-gray-50 transition duration-150 ease-in-out cursor-pointer"
@@ -76,6 +85,15 @@ export const Tasks = ({ tasks, dateFields, reload }) => {
                 </td>
                 <td className="px-4 py-3">{task.date_name}</td>
                 <td className="px-4 py-3">{cleanText(task.task_name)}</td>
+                <td className="px-4 py-3">
+                  {task.is_repeatable ? 'Yes' : 'No'}
+                </td>
+                <td className="px-4 py-3">{task.frequency ?? 'N/A'}</td>
+                <td className="px-4 py-3">
+                  {task.interval && task.interval_type
+                    ? `${task.interval} ${task.interval_type}(s)`
+                    : 'N/A'}
+                </td>
               </tr>
             ))}
           </tbody>
