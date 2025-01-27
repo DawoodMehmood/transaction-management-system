@@ -51,6 +51,10 @@ CREATE TABLE tkg.tasks (
     created_by varchar(50) NOT NULL,
     updated_date timestamp NULL,
     updated_by varchar(50) NULL,
+    is_repeatable boolean NOT NULL DEFAULT false, -- New field
+    frequency int NULL,                          -- New field
+    interval int NULL,                           -- New field
+    interval_type text NULL,                     -- New field
     CONSTRAINT tasks_pkey PRIMARY KEY (state, stage_id, task_id)
 );
 
@@ -102,6 +106,7 @@ CREATE TABLE tkg.transaction_detail (
     stage_id int4 NULL,
     task_id int4 NULL,
     task_name varchar(200) NULL,
+    task_days int4 NULL,
     task_status varchar(20) NULL,
     delete_ind bool NULL,
     created_date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

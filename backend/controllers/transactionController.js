@@ -127,69 +127,69 @@ exports.addTransaction = async (req, res) => {
 };
 
 
-exports.getTransactionDetails = async (req, res) => {
-    const { transaction_id } = req.params;
+// exports.getTransactionDetails = async (req, res) => {
+//     const { transaction_id } = req.params;
 
-    try {
-        const query = `
-           SELECT 
-            td.transaction_id, 
-            td.transaction_detail_id, 
-            td.list_price, 
-            td.sale_price, 
-            td.state_id, 
-            td.date_id, 
-            td.transaction_date, 
-            td.stage_id, 
-            MAX(st.stage_name) AS stage_name,  -- Aggregation to avoid duplicates
-            td.task_id, 
-            td.task_name, 
-            td.task_status, 
-            td.delete_ind, 
-            td.created_date, 
-            td.created_by, 
-            td.updated_date, 
-            td.updated_by, 
-            MAX(t.task_days) AS task_days  -- Aggregation to avoid duplicates
-            FROM 
-                tkg.transaction_detail td
-            LEFT JOIN 
-                tkg.tasks t ON td.task_id = t.task_id
-            LEFT JOIN 
-                tkg.stages st ON td.stage_id = st.stage_id
-            WHERE 
-                td.transaction_id = $1
-            GROUP BY 
-                td.transaction_id, td.transaction_detail_id, td.list_price, td.sale_price, 
-                td.state_id, td.date_id, td.transaction_date, td.stage_id, td.task_id, 
-                td.task_name, td.task_status, td.delete_ind, td.created_date, td.created_by, 
-                td.updated_date, td.updated_by
-            ORDER BY 
-                td.transaction_detail_id;
+//     try {
+//         const query = `
+//            SELECT 
+//             td.transaction_id, 
+//             td.transaction_detail_id, 
+//             td.list_price, 
+//             td.sale_price, 
+//             td.state_id, 
+//             td.date_id, 
+//             td.transaction_date, 
+//             td.stage_id, 
+//             MAX(st.stage_name) AS stage_name,  -- Aggregation to avoid duplicates
+//             td.task_id, 
+//             td.task_name, 
+//             td.task_status, 
+//             td.delete_ind, 
+//             td.created_date, 
+//             td.created_by, 
+//             td.updated_date, 
+//             td.updated_by, 
+//             MAX(t.task_days) AS task_days  -- Aggregation to avoid duplicates
+//             FROM 
+//                 tkg.transaction_detail td
+//             LEFT JOIN 
+//                 tkg.tasks t ON td.task_id = t.task_id
+//             LEFT JOIN 
+//                 tkg.stages st ON td.stage_id = st.stage_id
+//             WHERE 
+//                 td.transaction_id = $1
+//             GROUP BY 
+//                 td.transaction_id, td.transaction_detail_id, td.list_price, td.sale_price, 
+//                 td.state_id, td.date_id, td.transaction_date, td.stage_id, td.task_id, 
+//                 td.task_name, td.task_status, td.delete_ind, td.created_date, td.created_by, 
+//                 td.updated_date, td.updated_by
+//             ORDER BY 
+//                 td.transaction_detail_id;
 
-        `;
+//         `;
 
-        const result = await pool.query(query, [transaction_id]);
+//         const result = await pool.query(query, [transaction_id]);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                message: 'No details found for the given transaction ID.'
-            });
-        }
+//         if (result.rows.length === 0) {
+//             return res.status(404).json({
+//                 message: 'No details found for the given transaction ID.'
+//             });
+//         }
 
-        res.status(200).json({
-            message: 'Transaction details retrieved successfully.',
-            transaction_id,
-            details: result.rows
-        });
-    } catch (error) {
-        console.error("Error fetching transaction details:", error);
-        res.status(500).json({
-            message: 'Error fetching transaction details.',
-            error: error.message
-        });
-    }
-};
+//         res.status(200).json({
+//             message: 'Transaction details retrieved successfully.',
+//             transaction_id,
+//             details: result.rows
+//         });
+//     } catch (error) {
+//         console.error("Error fetching transaction details:", error);
+//         res.status(500).json({
+//             message: 'Error fetching transaction details.',
+//             error: error.message
+//         });
+//     }
+// };
 
 
 // GET all dates
