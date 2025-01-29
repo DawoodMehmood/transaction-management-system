@@ -80,11 +80,11 @@ export const Tasks = ({ tasks, dateFields, reload }) => {
                   setShowRowDrawer(true); // Open the drawer
                 }}
               >
-                <td className="px-4 py-3 flex items-center mx-8">
-                  {task.task_days}
-                </td>
+                <td className="px-4 py-3 text-center">{task.task_days}</td>
                 <td className="px-4 py-3">{task.date_name}</td>
-                <td className="px-4 py-3">{cleanText(task.task_name)}</td>
+                <td className="px-4 py-3 whitespace-normal break-words">
+                  {cleanText(task.task_name)}
+                </td>
                 <td className="px-4 py-3">
                   {task.is_repeatable ? 'Yes' : 'No'}
                 </td>

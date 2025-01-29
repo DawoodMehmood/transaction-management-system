@@ -103,7 +103,15 @@ const AddTaskForm = ({ closeModal, dateFields, currentStageId, reload }) => {
           <input
             type="number"
             value={taskDays}
-            onChange={(e) => setTaskDays(parseInt(e.target.value))}
+            // onChange={(e) => setTaskDays(parseInt(e.target.value))}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === '-' || value === '') {
+                setTaskDays(value); // Allow "-" or empty value
+              } else {
+                setTaskDays(parseInt(value));
+              }
+            }}
             className="w-1/3 border-2 rounded p-2"
             onKeyDown={(e) => {
               if (

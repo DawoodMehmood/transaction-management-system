@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getServerUrl } from '../../utility/getServerUrl';
 import { showErrorToast } from './../../toastConfig';
+import { cleanText } from '../../utility/getCleanText';
 
 const RowForm = ({ closeModal, task, dateFields, onUpdate }) => {
   const [taskName, setTaskName] = useState(task.task_name || '');
@@ -55,7 +56,7 @@ const RowForm = ({ closeModal, task, dateFields, onUpdate }) => {
     <div className="max-w-lg mx-auto bg-white">
       <div className="font-medium mb-2">Name</div>
       <textarea
-        value={taskName}
+        value={cleanText(taskName)}
         onChange={(e) => setTaskName(e.target.value)}
         className="w-full border-2 rounded p-2 focus:outline-none"
         rows="4"
@@ -67,7 +68,15 @@ const RowForm = ({ closeModal, task, dateFields, onUpdate }) => {
         <input
           type="number"
           value={taskDays}
-          onChange={(e) => setTaskDays(parseInt(e.target.value))}
+          // onChange={(e) => setTaskDays(parseInt(e.target.value))}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === '-' || value === '') {
+              setTaskDays(value); // Allow "-" or empty value
+            } else {
+              setTaskDays(parseInt(value));
+            }
+          }}
           className="w-1/3 border-2 rounded p-2"
           onKeyDown={(e) => {
             if (

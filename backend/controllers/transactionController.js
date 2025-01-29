@@ -129,17 +129,6 @@ exports.addTransaction = async (req, res) => {
                 const { frequency, interval, interval_type } = taskConfig;
 
                 for (let i = 1; i <= frequency; i++) {
-                    // Calculate additional `task_days` based on the repeat configuration
-                    let additionalDays = 0;
-                    if (interval_type === 'day') {
-                        additionalDays = interval * i;
-                    } else if (interval_type === 'week') {
-                        additionalDays = interval * 7 * i;
-                    } else if (interval_type === 'month') {
-                        additionalDays = interval * 30 * i; // Approximation for months
-                    }
-
-                    const newTaskDays = task.task_days + additionalDays;
 
                     // Determine the new `transaction_detail_id`
                     const maxTransactionDetailIdQuery = `
@@ -165,15 +154,15 @@ exports.addTransaction = async (req, res) => {
                     const duplicateTaskValues = [
                         newTransaction.transaction_id,
                         newTransactionDetailId,
-                        list_price || 0,
-                        list_price || 0,
-                        state,
+                        task.list_price || 0,
+                        task.list_price || 0,
+                        task.state_id,
                         task.date_id,
                         null,
-                        stage_id,
+                        task.stage_id,
                         task.task_id,
                         task.task_name,
-                        newTaskDays,
+                        null,
                         created_by || 'Faisal',
                     ];
 
@@ -697,12 +686,25 @@ exports.duplicateTask = async (req, res) => {
         }
 
         const taskToDuplicate = fetchResult.rows[0];
+        
+        function addMonthsSafely(date, months) {
+            const newDate = new Date(date);
+            const expectedMonth = newDate.getMonth() + months;
+            
+            newDate.setMonth(expectedMonth);
+          
+            if (newDate.getDate() !== date.getDate()) {
+              newDate.setDate(0); // Moves to the last day of the previous month
+            }
+          
+            return newDate;
+          }
 
         // Frequency-based date increment logic
         const calculateNewDate = (currentDate, repeatInterval, frequency, increment) => {
             console.log('currentDate:', currentDate);
             // Treat the input date as UTC by appending T00:00:00Z
-            const utcDate = new Date(currentDate); // Ensure the input date is UTC
+            let utcDate = new Date(currentDate); // Ensure the input date is UTC
             console.log('utcDate:', utcDate);
             // Calculate the new date based on the frequency
             if (frequency === 'day') {
@@ -710,7 +712,8 @@ exports.duplicateTask = async (req, res) => {
             } else if (frequency === 'week') {
                 utcDate.setUTCDate(utcDate.getUTCDate() + (repeatInterval * 7) * increment);
             } else if (frequency === 'month') {
-                utcDate.setUTCMonth(utcDate.getUTCMonth() + repeatInterval * increment);
+                // utcDate.setUTCMonth(utcDate.getUTCMonth() + repeatInterval * increment);
+                utcDate = addMonthsSafely(utcDate, repeatInterval * increment);
             }
         
             // Return the date in YYYY-MM-DD format

@@ -124,12 +124,8 @@ const TransactionForm = ({ closeModal }) => {
         const list_price = responseData.transaction.list_price;
         const fullAddress = `${address}, ${city}`;
         const price = list_price;
-        console.log('Transaction ID:', transactionId);
-        console.log('Full address:', fullAddress);
-        console.log('Price:', price);
 
-        // showSuccessToast('Transaction saved successfully!');
-        let currentStep = 1;
+        const currentStep = parseInt(responseData.transaction.stage_id);
         navigate('/StepperSection', {
           state: {
             transactionId,
