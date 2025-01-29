@@ -15,11 +15,11 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
     useState(null);
   const [activeStage, setActiveStage] = useState(currentStep);
   const [showSkipModal, setShowSkipModal] = useState(false);
+  const [taskToSkip, setTaskToSkip] = useState(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showRowDrawer, setShowRowDrawer] = useState(false);
-  const [taskToSkip, setTaskToSkip] = useState(null);
-  const [taskToDuplicate, setTaskToDuplicate] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [taskToDuplicate, setTaskToDuplicate] = useState(null);
 
   // Fetch checklist data
   const fetchData = async () => {
@@ -536,15 +536,6 @@ const DuplicateModal = ({
                   className="w-1/3 border rounded p-2"
                   min="1"
                 />
-                {/* <select
-                  value={frequency}
-                  onChange={(e) => setFrequency(e.target.value)}
-                  className="w-2/3 border rounded p-2"
-                >
-                  <option value="day">Day(s)</option>
-                  <option value="week">Week(s)</option>
-                  <option value="month">Month(s)</option>
-                </select> */}
                 <div className="w-2/3 flex">
                   <button
                     onClick={() => setFrequency('day')}

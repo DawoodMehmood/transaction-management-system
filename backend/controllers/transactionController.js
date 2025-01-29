@@ -57,13 +57,13 @@ exports.addTransaction = async (req, res) => {
     } = req.body;
 
     try {
-        // Insert a new transaction and return the generated ID
+        // Step 1: Insert a new transaction
         const result = await pool.query(
             `INSERT INTO tkg.transaction 
             (first_name, last_name, address1, address2, city, state, zip, 
              list_price, stage_id, delete_ind, created_by) 
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-             RETURNING *`,  // Returning the inserted transaction
+             RETURNING *`,
             [
                 first_name || null, last_name || null, address1 || null,
                 address2 || null, city || null, state || null, zip || null,
@@ -72,14 +72,14 @@ exports.addTransaction = async (req, res) => {
             ]
         );
 
-        const newTransaction = result.rows[0];  // Store the new transaction
+        const newTransaction = result.rows[0];
         console.log("Transaction added with ID:", newTransaction.transaction_id);
 
-        // Insert task details for the new transaction
+        // Step 2: Insert initial tasks for the transaction
         const taskDetails = await pool.query(
             `INSERT INTO tkg.transaction_detail 
             (transaction_id, transaction_detail_id, list_price, sale_price, 
-             state_id, date_id, transaction_date, stage_id, task_id, task_name, 
+             state_id, date_id, transaction_date, stage_id, task_id, task_name, task_days,
              task_status, delete_ind, created_date, created_by)
              SELECT 
                  $1::BIGINT AS transaction_id, 
@@ -92,6 +92,7 @@ exports.addTransaction = async (req, res) => {
                  b.stage_id, 
                  b.task_id, 
                  b.task_name, 
+                 b.task_days,
                  'Open' AS task_status, 
                  FALSE AS delete_ind, 
                  CURRENT_DATE AS created_date, 
@@ -100,21 +101,86 @@ exports.addTransaction = async (req, res) => {
                  tkg.tasks b 
              WHERE 
                  b.state = $4
-             RETURNING *`,  // Return the newly inserted task details
+             RETURNING *`,
             [
-                newTransaction.transaction_id, // Ensure it's passed as a bigint
-                list_price || 0,               // Ensure it's a numeric value
+                newTransaction.transaction_id,
+                list_price || 0,
                 created_by || 'Faisal',
                 state
             ]
         );
 
-        // Respond with the new transaction and its details
+        const initialTasks = taskDetails.rows;
+
+        // Step 3: Handle repeatable tasks by modifying `task_days`
+        const duplicatedTasks = [];
+        for (const task of initialTasks) {
+            // Fetch the repeat configuration for the task
+            const taskConfigQuery = `
+                SELECT is_repeatable, frequency, interval, interval_type 
+                FROM tkg.tasks 
+                WHERE task_id = $1 AND stage_id = $2 AND state = $3
+            `;
+            const taskConfigResult = await pool.query(taskConfigQuery, [task.task_id, task.stage_id, task.state_id]);
+            const taskConfig = taskConfigResult.rows[0];
+
+            // Proceed only if the task is repeatable
+            if (taskConfig?.is_repeatable) {
+                const { frequency, interval, interval_type } = taskConfig;
+
+                for (let i = 1; i <= frequency; i++) {
+
+                    // Determine the new `transaction_detail_id`
+                    const maxTransactionDetailIdQuery = `
+                        SELECT MAX(transaction_detail_id) AS max_id 
+                        FROM tkg.transaction_detail 
+                        WHERE transaction_id = $1
+                    `;
+                    const maxIdResult = await pool.query(maxTransactionDetailIdQuery, [newTransaction.transaction_id]);
+                    const maxId = maxIdResult.rows[0]?.max_id || 0;
+
+                    const newTransactionDetailId = parseInt(maxId) + 1;
+
+                    // Insert the duplicate task with updated `task_days`
+                    const duplicateTaskQuery = `
+                        INSERT INTO tkg.transaction_detail 
+                        (transaction_id, transaction_detail_id, list_price, sale_price, 
+                        state_id, date_id, transaction_date, stage_id, task_id, task_name, task_days, 
+                        task_status, delete_ind, created_date, created_by)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'Open', FALSE, CURRENT_DATE, $12)
+                        RETURNING *
+                    `;
+
+                    const duplicateTaskValues = [
+                        newTransaction.transaction_id,
+                        newTransactionDetailId,
+                        task.list_price || 0,
+                        task.list_price || 0,
+                        task.state_id,
+                        task.date_id,
+                        null,
+                        task.stage_id,
+                        task.task_id,
+                        task.task_name,
+                        null,
+                        created_by || 'Faisal',
+                    ];
+
+                    const duplicateResult = await pool.query(duplicateTaskQuery, duplicateTaskValues);
+                    duplicatedTasks.push(duplicateResult.rows[0]);
+                }
+            }
+        }
+
+        // Combine initial tasks and duplicated tasks for response
+        const allTasks = [...initialTasks, ...duplicatedTasks];
+
+        // Step 4: Respond with transaction details
         res.status(201).json({
             message: 'Transaction added successfully.',
             transaction: {
                 ...newTransaction,
-                transaction_details: taskDetails.rows
+                transaction_details: allTasks
             }
         });
     } catch (error) {
@@ -127,69 +193,69 @@ exports.addTransaction = async (req, res) => {
 };
 
 
-exports.getTransactionDetails = async (req, res) => {
-    const { transaction_id } = req.params;
+// exports.getTransactionDetails = async (req, res) => {
+//     const { transaction_id } = req.params;
 
-    try {
-        const query = `
-           SELECT 
-            td.transaction_id, 
-            td.transaction_detail_id, 
-            td.list_price, 
-            td.sale_price, 
-            td.state_id, 
-            td.date_id, 
-            td.transaction_date, 
-            td.stage_id, 
-            MAX(st.stage_name) AS stage_name,  -- Aggregation to avoid duplicates
-            td.task_id, 
-            td.task_name, 
-            td.task_status, 
-            td.delete_ind, 
-            td.created_date, 
-            td.created_by, 
-            td.updated_date, 
-            td.updated_by, 
-            MAX(t.task_days) AS task_days  -- Aggregation to avoid duplicates
-            FROM 
-                tkg.transaction_detail td
-            LEFT JOIN 
-                tkg.tasks t ON td.task_id = t.task_id
-            LEFT JOIN 
-                tkg.stages st ON td.stage_id = st.stage_id
-            WHERE 
-                td.transaction_id = $1
-            GROUP BY 
-                td.transaction_id, td.transaction_detail_id, td.list_price, td.sale_price, 
-                td.state_id, td.date_id, td.transaction_date, td.stage_id, td.task_id, 
-                td.task_name, td.task_status, td.delete_ind, td.created_date, td.created_by, 
-                td.updated_date, td.updated_by
-            ORDER BY 
-                td.transaction_detail_id;
+//     try {
+//         const query = `
+//            SELECT 
+//             td.transaction_id, 
+//             td.transaction_detail_id, 
+//             td.list_price, 
+//             td.sale_price, 
+//             td.state_id, 
+//             td.date_id, 
+//             td.transaction_date, 
+//             td.stage_id, 
+//             MAX(st.stage_name) AS stage_name,  -- Aggregation to avoid duplicates
+//             td.task_id, 
+//             td.task_name, 
+//             td.task_status, 
+//             td.delete_ind, 
+//             td.created_date, 
+//             td.created_by, 
+//             td.updated_date, 
+//             td.updated_by, 
+//             MAX(t.task_days) AS task_days  -- Aggregation to avoid duplicates
+//             FROM 
+//                 tkg.transaction_detail td
+//             LEFT JOIN 
+//                 tkg.tasks t ON td.task_id = t.task_id
+//             LEFT JOIN 
+//                 tkg.stages st ON td.stage_id = st.stage_id
+//             WHERE 
+//                 td.transaction_id = $1
+//             GROUP BY 
+//                 td.transaction_id, td.transaction_detail_id, td.list_price, td.sale_price, 
+//                 td.state_id, td.date_id, td.transaction_date, td.stage_id, td.task_id, 
+//                 td.task_name, td.task_status, td.delete_ind, td.created_date, td.created_by, 
+//                 td.updated_date, td.updated_by
+//             ORDER BY 
+//                 td.transaction_detail_id;
 
-        `;
+//         `;
 
-        const result = await pool.query(query, [transaction_id]);
+//         const result = await pool.query(query, [transaction_id]);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                message: 'No details found for the given transaction ID.'
-            });
-        }
+//         if (result.rows.length === 0) {
+//             return res.status(404).json({
+//                 message: 'No details found for the given transaction ID.'
+//             });
+//         }
 
-        res.status(200).json({
-            message: 'Transaction details retrieved successfully.',
-            transaction_id,
-            details: result.rows
-        });
-    } catch (error) {
-        console.error("Error fetching transaction details:", error);
-        res.status(500).json({
-            message: 'Error fetching transaction details.',
-            error: error.message
-        });
-    }
-};
+//         res.status(200).json({
+//             message: 'Transaction details retrieved successfully.',
+//             transaction_id,
+//             details: result.rows
+//         });
+//     } catch (error) {
+//         console.error("Error fetching transaction details:", error);
+//         res.status(500).json({
+//             message: 'Error fetching transaction details.',
+//             error: error.message
+//         });
+//     }
+// };
 
 
 // GET all dates
@@ -241,10 +307,9 @@ exports.getChecklistDetails = async (req, res) => {
                 td.is_skipped,
                 td.skip_reason,
                 td.notes, 
-                t.task_days,
                 COALESCE(
                     td.task_due_date::DATE::TEXT, 
-                    ((d.entered_date::DATE + t.task_days * INTERVAL '1 day')::DATE::TEXT)
+                    ((d.entered_date::DATE + td.task_days * INTERVAL '1 day')::DATE::TEXT)
                 ) AS task_due_date
             FROM 
                 tkg.transaction_detail td
@@ -254,10 +319,6 @@ exports.getChecklistDetails = async (req, res) => {
                     td.date_id = d.date_id AND 
                     td.transaction_id = d.transaction_id AND 
                     td.stage_id = d.stage_id 
-            LEFT JOIN 
-                tkg.tasks t ON td.task_id = t.task_id
-                AND td.state_id = t.state 
-                AND td.stage_id = t.stage_id
             WHERE 
                 td.transaction_id = $1 AND td.date_id = d.date_id
             ORDER BY 
@@ -274,7 +335,7 @@ exports.getChecklistDetails = async (req, res) => {
 
         // Group tasks by stage_id
         const groupedDetails = result.rows.reduce((acc, row) => {
-            const { stage_id, task_id, transaction_detail_id, task_name, task_status, task_days, is_skipped, skip_reason, notes, task_due_date } = row;
+            const { stage_id, task_id, transaction_detail_id, task_name, task_status, is_skipped, skip_reason, notes, task_due_date } = row;
 
             // Initialize the group if it doesn't exist
             if (!acc[stage_id]) {
@@ -294,7 +355,6 @@ exports.getChecklistDetails = async (req, res) => {
                 transaction_detail_id,
                 task_name, 
                 task_status, 
-                task_days,
                 is_skipped,
                 skip_reason,
                 notes,
@@ -626,12 +686,25 @@ exports.duplicateTask = async (req, res) => {
         }
 
         const taskToDuplicate = fetchResult.rows[0];
+        
+        function addMonthsSafely(date, months) {
+            const newDate = new Date(date);
+            const expectedMonth = newDate.getMonth() + months;
+            
+            newDate.setMonth(expectedMonth);
+          
+            if (newDate.getDate() !== date.getDate()) {
+              newDate.setDate(0); // Moves to the last day of the previous month
+            }
+          
+            return newDate;
+          }
 
         // Frequency-based date increment logic
         const calculateNewDate = (currentDate, repeatInterval, frequency, increment) => {
             console.log('currentDate:', currentDate);
             // Treat the input date as UTC by appending T00:00:00Z
-            const utcDate = new Date(currentDate); // Ensure the input date is UTC
+            let utcDate = new Date(currentDate); // Ensure the input date is UTC
             console.log('utcDate:', utcDate);
             // Calculate the new date based on the frequency
             if (frequency === 'day') {
@@ -639,7 +712,8 @@ exports.duplicateTask = async (req, res) => {
             } else if (frequency === 'week') {
                 utcDate.setUTCDate(utcDate.getUTCDate() + (repeatInterval * 7) * increment);
             } else if (frequency === 'month') {
-                utcDate.setUTCMonth(utcDate.getUTCMonth() + repeatInterval * increment);
+                // utcDate.setUTCMonth(utcDate.getUTCMonth() + repeatInterval * increment);
+                utcDate = addMonthsSafely(utcDate, repeatInterval * increment);
             }
         
             // Return the date in YYYY-MM-DD format

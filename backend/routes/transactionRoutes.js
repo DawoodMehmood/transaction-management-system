@@ -10,7 +10,7 @@ router.get('/stages', transactionController.getStages);
 router.get('/price-summary', transactionController.getStageWisePrices);
 
 // Get details of a particular transaction by ID
-router.get('/:transaction_id', transactionController.getTransactionDetails);
+// router.get('/:transaction_id', transactionController.getTransactionDetails);
 router.get('/:transaction_id/details', transactionController.getChecklistDetails);
 router.put('/:transaction_detail_id/status', transactionController.updateTaskStatus);
 router.put('/:transaction_detail_id/task', transactionController.updateTask);

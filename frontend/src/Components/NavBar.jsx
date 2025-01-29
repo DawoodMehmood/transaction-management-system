@@ -14,12 +14,12 @@ const NavBar = () => {
     { name: 'Transactions', dropdown: false, path: '/Transactions' },
     // { name: 'Listings', dropdown: false, path: '/listings' },
     { name: 'Systems', dropdown: false },
-    { name: 'Calendars', dropdown: false, path: '/calendars' },
+    { name: 'Calendars', dropdown: false, path: '/Calendars' },
     // { name: 'Marketing', dropdown: false },
     // { name: 'Reporting', dropdown: false },
     // { name: 'Website', dropdown: false },
     // { name: 'Marketplace', dropdown: false },
-    { name: 'Settings', dropdown: false },
+    { name: 'Settings', dropdown: false, path: '/Settings' },
   ];
 
   // Set active item based on current route
