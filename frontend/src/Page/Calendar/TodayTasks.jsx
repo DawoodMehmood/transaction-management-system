@@ -57,8 +57,9 @@ export const TodayTasks = ({ setupdatedLoading }) => {
         //   setTasksByStage(tasksByStage);
 
         if (data && data.transactions) {
-          const today = new Date();
-          console.log("Today's date:", today);
+          const now = new Date();
+          console.log("Today's date:", now);
+          const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
 
           // Flatten, filter, and sort tasks
           const allTasks = data.transactions
@@ -81,9 +82,8 @@ export const TodayTasks = ({ setupdatedLoading }) => {
               // Check if the task's date is today
               const isToday =
                 task.enteredDate &&
-                task.enteredDate.getDate() === today.getDate() &&
-                task.enteredDate.getMonth() === today.getMonth() &&
-                task.enteredDate.getFullYear() === today.getFullYear();
+                task.enteredDate.toISOString().slice(0, 10) ===
+                  sixHoursAgo.toISOString().slice(0, 10);
               return task.task_status === 'Open' && isToday;
             })
             .sort((a, b) => {

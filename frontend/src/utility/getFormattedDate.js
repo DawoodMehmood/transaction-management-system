@@ -38,3 +38,25 @@ export const formatDate = (date) => {
         .padStart(2, '0')}/${date.getUTCDate().toString().padStart(2, '0')}/${date.getUTCFullYear()}`
     : 'N/A';
 };
+
+export const formatDateADayBefore = (date) => {
+  if (!date) return 'N/A';
+
+  const adjustedDate = new Date(date);
+  adjustedDate.setDate(adjustedDate.getDate() - 1); // Subtract one day
+
+  return `${(adjustedDate.getUTCMonth() + 1)
+    .toString()
+    .padStart(2, '0')}/${adjustedDate
+    .getUTCDate()
+    .toString()
+    .padStart(2, '0')}/${adjustedDate.getUTCFullYear()}`;
+};
+
+export const getDateADayAfter = (date) => {
+  if (!date) return null;
+
+  const adjustedDate = new Date(date);
+  adjustedDate.setDate(adjustedDate.getDate() + 1);
+  return adjustedDate
+}

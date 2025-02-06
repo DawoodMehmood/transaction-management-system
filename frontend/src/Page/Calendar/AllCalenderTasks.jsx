@@ -46,30 +46,33 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
 
         if (data && data.transactions) {
           // Flatten all tasks from transactions
-          const allTasks = data.transactions.flatMap((transaction) =>
-            transaction.dates.map((date) => ({
-              transactionName: transaction.transaction_name,
-              transaction_id: transaction.transaction_id,
-              address: transaction.address,
-              stage_id: date.stage_id,
-              taskName: date.task.task_name,
-              task_id: date.task.task_id,
-              transaction_detail_id: date.task.transaction_detail_id,
-              task_status: date.task.task_status,
-              enteredDate: date.task_due_date
-                ? new Date(`${date.task_due_date}T00:00:00Z`)
-                : null,
-            }))
-          );
+          const allTasks = data.transactions
+            .flatMap((transaction) =>
+              transaction.dates.map((date) => ({
+                transactionName: transaction.transaction_name,
+                transaction_id: transaction.transaction_id,
+                address: transaction.address,
+                stage_id: date.stage_id,
+                taskName: date.task.task_name,
+                task_id: date.task.task_id,
+                transaction_detail_id: date.task.transaction_detail_id,
+                task_status: date.task.task_status,
+                enteredDate: date.task_due_date
+                  ? new Date(`${date.task_due_date}T00:00:00Z`)
+                  : null,
+              }))
+            )
+            .filter((task) => {
+              return task.enteredDate;
+            })
+            .sort((a, b) => {
+              // Sort tasks by enteredDate
+              if (!a.enteredDate) return 1; // Place null dates at the end
+              if (!b.enteredDate) return -1; // Place null dates at the end
+              return a.enteredDate - b.enteredDate; // Compare dates
+            });
 
-          // Sort tasks by enteredDate in ascending order
-          const sortedTasks = allTasks.sort((a, b) => {
-            if (!a.enteredDate) return 1; // Place null dates at the end
-            if (!b.enteredDate) return -1; // Place null dates at the end
-            return a.enteredDate - b.enteredDate; // Compare dates
-          });
-
-          setTasksByStage(sortedTasks); // Store as a flat list
+          setTasksByStage(allTasks); // Store as a flat list
         }
       } catch (error) {
         console.error('Error fetching tasks:', error);

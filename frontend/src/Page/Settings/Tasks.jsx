@@ -49,7 +49,14 @@ export const Tasks = ({ tasks, dateFields, reload }) => {
     }
   };
 
-  const sortedTasks = [...tasks].sort((a, b) => a.task_id - b.task_id);
+  const sortedTasks = Object.values(
+    tasks.reduce((acc, task) => {
+      if (!acc[task.date_id]) acc[task.date_id] = [];
+      acc[task.date_id].push(task);
+      return acc;
+    }, {})
+  ).flatMap((group) => group.sort((a, b) => a.task_days - b.task_days));
+
   return (
     <div>
       <div className="overflow-x-auto bg-white">

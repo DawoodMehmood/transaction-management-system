@@ -3,7 +3,11 @@ import { getServerUrl } from '../../../utility/getServerUrl';
 import { showErrorToast, showSuccessToast } from '../../../toastConfig';
 import DatePicker from 'react-datepicker';
 import { CalendarIcon } from '@heroicons/react/outline';
-import { formatDate } from '../../../utility/getFormattedDate';
+import {
+  formatDate,
+  formatDateADayBefore,
+  getDateADayAfter,
+} from '../../../utility/getFormattedDate';
 
 const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
   const [loading, setLoading] = useState(true);
@@ -12,6 +16,7 @@ const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
   );
   const [notes, setNotes] = useState(task.notes || '');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isUserSelected, setIsUserSelected] = useState(false);
 
   const handleSubmit = async () => {
     try {
@@ -71,16 +76,23 @@ const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
           className="font-normal text-lg ms-4 cursor-pointer"
           onClick={() => setShowDatePicker(true)}
         >
-          {date ? formatDate(date) : 'Select a date'}
+          {date
+            ? isUserSelected
+              ? formatDateADayBefore(date)
+              : formatDate(date)
+            : 'Select a date'}
         </p>
         {showDatePicker && (
-          <div className="absolute bottom-full left-0 z-10">
+          <div className="absolute top-full left-0 z-10">
             <DatePicker
-              selected={date}
-              onChange={(date) => setDate(date)}
+              selected={getDateADayAfter(date)}
+              onChange={(date) => {
+                setDate(date);
+                setIsUserSelected(true); // Mark that the user manually selected a date
+              }}
               inline
               calendarClassName="custom-calendar"
-              popperPlacement="top"
+              popperPlacement="bottom"
               onClickOutside={() => setShowDatePicker(false)}
             />
           </div>

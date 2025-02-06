@@ -495,7 +495,7 @@ exports.updateTransactionStage = async (req, res) => {
       // Clone dates only when moving up a stage
       if (new_stage > current_stage) {
         const fetchDatesQuery = `
-          SELECT state_id, date_id, date_name, entered_date, created_date, created_by, transaction_id, stage_id, updated_date, updated_by
+          SELECT state_id, date_id, date_name, entered_date::DATE::TEXT, created_date, created_by, transaction_id, stage_id, updated_date, updated_by
           FROM tkg.dates
           WHERE transaction_id = $1 AND stage_id = $2;
         `;
@@ -525,7 +525,79 @@ exports.updateTransactionStage = async (req, res) => {
   
           await Promise.all(insertPromises); // Execute all insert queries
         }
+        
+        // Fetch tasks with `null` task_days for the new stage
+        const fetchTasksQuery = `
+              SELECT td.transaction_detail_id, t.date_id, td.task_id, t.task_days, t.is_repeatable, t.frequency, t.interval, t.interval_type
+              FROM tkg.transaction_detail td
+              JOIN tkg.tasks t ON td.task_id = t.task_id AND td.stage_id = t.stage_id AND td.state_id = t.state
+              WHERE td.transaction_id = $1 AND td.task_days IS NULL AND td.stage_id = $2
+              ORDER BY td.task_id, td.transaction_detail_id;
+          `;
+          const tasksWithNullTaskDays = (await client.query(fetchTasksQuery, [transaction_id, new_stage])).rows;
+  
+          // Group tasks by task_id
+          const tasksGroupedByTaskId = tasksWithNullTaskDays.reduce((acc, task) => {
+              acc[task.task_id] = acc[task.task_id] || [];
+              acc[task.task_id].push(task);
+              return acc;
+          }, {});
+  
+          function addMonthsSafely(date, months) {
+              const newDate = new Date(date);
+              const expectedMonth = newDate.getMonth() + months;
+              newDate.setMonth(expectedMonth);
+  
+              if (newDate.getDate() !== date.getDate()) {
+                  newDate.setDate(0); // Moves to the last day of the previous month
+              }
+  
+              return newDate;
+          }
+  
+          // Process and update task_days
+          for (const [taskId, taskGroup] of Object.entries(tasksGroupedByTaskId)) {
+              const taskConfig = taskGroup[0]; // All tasks in the group share the same config
+              const assignedDate = datesResult.rows.find((date) => date.date_id === taskConfig.date_id)?.entered_date;
+  
+              if (taskConfig.is_repeatable && assignedDate) {
+                  const { interval, interval_type, task_days } = taskConfig;
+  
+                  // Parse assigned date
+                  console.log('assigned date: ', assignedDate)
+                  const [year, month, day] = assignedDate.split("-");
+                  const baseDate = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+  
+                  for (let i = 0; i < taskGroup.length; i++) {
+                      const task = taskGroup[i];
+  
+                      // Calculate additional `task_days`
+                      let additionalDays = 0;
+                      if (interval_type === 'day') {
+                          additionalDays = interval * (i + 1);
+                      } else if (interval_type === 'week') {
+                          additionalDays = interval * 7 * (i + 1);
+                      } else if (interval_type === 'month') {
+                          const newDate = addMonthsSafely(baseDate, interval * (i + 1));
+                          additionalDays = Math.floor((newDate - baseDate) / (1000 * 60 * 60 * 24));
+                      }
+  
+                      const newTaskDays = (task_days || 0) + additionalDays;
+  
+                      // Update task_days for the current task
+                      await client.query(
+                          `
+                          UPDATE tkg.transaction_detail
+                          SET task_days = $1
+                          WHERE transaction_detail_id = $2 AND transaction_id = $3;
+                          `,
+                          [newTaskDays, task.transaction_detail_id, transaction_id]
+                      );
+                  }
+              }
+          }
       }
+      
   
       await client.query('COMMIT'); // Commit the transaction
   

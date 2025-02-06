@@ -29,19 +29,23 @@ const Sidebar = ({
 
   // Calculate counts for each task category based on "Opened" status
   const counts = {
-    alltasks: tasks.filter((task) => task.taskStatus === 'Open').length,
+    alltasks: tasks.filter(
+      (task) => task.taskStatus === 'Open' && task.enteredDate
+    ).length,
     Scheduled: tasks.filter(
       (task) => task.taskStatus === 'Open' && task.category === 'Scheduled'
     ).length,
     today: tasks.filter((task) => {
-      const taskDate = new Date(task.enteredDate);
+      const now = new Date();
+      const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
       return (
         task.taskStatus === 'Open' &&
-        taskDate.toDateString() === new Date().toDateString()
+        task.enteredDate &&
+        task.enteredDate.toISOString().slice(0, 10) ===
+          sixHoursAgo.toISOString().slice(0, 10)
       );
     }).length,
     thisWeek: tasks.filter((task) => {
-      const taskDate = new Date(task.enteredDate);
       const now = new Date();
       const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
       const endOfWeek = new Date(
@@ -49,24 +53,28 @@ const Sidebar = ({
       );
       return (
         task.taskStatus === 'Open' &&
-        taskDate >= startOfWeek &&
-        taskDate <= endOfWeek
+        task.enteredDate &&
+        task.enteredDate >= startOfWeek &&
+        task.enteredDate <= endOfWeek
       );
     }).length,
     thisMonth: tasks.filter((task) => {
-      const taskDate = new Date(task.enteredDate);
       const now = new Date();
       return (
         task.taskStatus === 'Open' &&
-        taskDate.getMonth() === now.getMonth() &&
-        taskDate.getFullYear() === now.getFullYear()
+        task.enteredDate &&
+        task.enteredDate.getMonth() === now.getMonth() &&
+        task.enteredDate.getFullYear() === now.getFullYear()
       );
     }).length,
     overdue: tasks.filter((task) => {
-      const taskDate = new Date(task.enteredDate);
       const oneDayBeforeNow = new Date();
       oneDayBeforeNow.setDate(oneDayBeforeNow.getDate() - 1);
-      return task.taskStatus === 'Open' && taskDate <= oneDayBeforeNow;
+      return (
+        task.taskStatus === 'Open' &&
+        task.enteredDate &&
+        task.enteredDate <= oneDayBeforeNow
+      );
     }).length,
     finished: tasks.filter((task) => task.taskStatus === 'Completed').length,
   };
