@@ -4,7 +4,7 @@ import { showErrorToast, showSuccessToast } from '../../toastConfig';
 import { cleanText } from '../../utility/getCleanText';
 import { formatDate } from '../../utility/getFormattedDate';
 
-export const AllCalenderTasks = ({ setupdatedLoading }) => {
+export const AllCalendarTasks = ({ setupdatedLoading }) => {
   const [tasksByStage, setTasksByStage] = useState([]);
   const [loadingTransactionDetailId, setLoadingTransactionDetailId] =
     useState(null);
@@ -17,32 +17,6 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
           throw new Error('Network response was not ok');
         }
         const data = await response.json();
-
-        // if (data && data.transactions) {
-        //   // Group tasks by stage_id
-        //   const tasksByStage = data.transactions
-        //     .flatMap((transaction) =>
-        //       transaction.dates.map((date) => ({
-        //         transactionName: transaction.transaction_name,
-        //         transaction_id: transaction.transaction_id,
-        //         address: transaction.address,
-        //         stage_id: date.stage_id,
-        //         taskName: date.task.task_name,
-        //         task_id: date.task.task_id,
-        //         transaction_detail_id: date.task.transaction_detail_id,
-        //         task_status: date.task.task_status,
-        //         enteredDate: date.task_due_date
-        //           ? new Date(date.task_due_date)
-        //           : null,
-        //       }))
-        //     )
-        //     .reduce((acc, task) => {
-        //       acc[task.stage_id] = acc[task.stage_id] || [];
-        //       acc[task.stage_id].push(task);
-        //       return acc;
-        //     }, {});
-
-        //   setTasksByStage(tasksByStage);
 
         if (data && data.transactions) {
           // Flatten all tasks from transactions
@@ -57,13 +31,15 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
                 task_id: date.task.task_id,
                 transaction_detail_id: date.task.transaction_detail_id,
                 task_status: date.task.task_status,
+                skip_reason: date.task.skip_reason, // Assuming skip_reason is returned by the API
                 enteredDate: date.task_due_date
                   ? new Date(`${date.task_due_date}T00:00:00Z`)
                   : null,
               }))
             )
             .filter((task) => {
-              return task.enteredDate;
+              // Filter out tasks that have a skip_reason
+              return !task.skip_reason; // Only include tasks without a skip_reason
             })
             .sort((a, b) => {
               // Sort tasks by enteredDate
@@ -102,20 +78,11 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
           }),
         }
       );
-      console.log(response);
 
       if (response.ok) {
         const result = await response.json();
         console.log(result);
         setupdatedLoading(true);
-        // showSuccessToast('Task status updated successfully!');
-        // setTasksByStage((prevTasks) => {
-        //   const updatedTasks = { ...prevTasks };
-        //   updatedTasks[task.stage_id] = updatedTasks[task.stage_id].filter(
-        //     (t) => t.transaction_id + t.transaction_detail_id !== compositeKey
-        //   );
-        //   return updatedTasks;
-        // });
         setTasksByStage((prevTasks) =>
           prevTasks.filter(
             (t) => t.transaction_id + t.transaction_detail_id !== compositeKey
@@ -184,4 +151,4 @@ export const AllCalenderTasks = ({ setupdatedLoading }) => {
   );
 };
 
-export default AllCalenderTasks;
+export default AllCalendarTasks;

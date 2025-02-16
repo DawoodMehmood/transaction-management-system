@@ -3,7 +3,7 @@ import { getServerUrl } from '../../../utility/getServerUrl';
 import { cleanText } from '../../../utility/getCleanText.js';
 import { AnimatePresence, motion } from 'framer-motion';
 import RowForm from './RowDrawer.jsx';
-import { TrashIcon, XIcon } from '@heroicons/react/outline';
+import { XIcon } from '@heroicons/react/outline';
 import { showSuccessToast } from './../../../toastConfig.js';
 import { formatDate } from '../../../utility/getFormattedDate.js';
 
@@ -14,8 +14,6 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
   const [loadingTransactionDetailId, setLoadingTransactionDetailId] =
     useState(null);
   const [activeStage, setActiveStage] = useState(currentStep);
-  const [showSkipModal, setShowSkipModal] = useState(false);
-  const [taskToSkip, setTaskToSkip] = useState(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showRowDrawer, setShowRowDrawer] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -41,12 +39,9 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
   const handleCheckboxChange = async (
     transactionDetailId,
     taskStatus,
-    stageId,
-    skipReason = null
+    stageId
   ) => {
     if (loadingTransactionDetailId === transactionDetailId) return;
-
-    setTaskToSkip({ transactionDetailId, stageId });
 
     setLoadingTransactionDetailId(transactionDetailId);
     const updatedStatus = taskStatus === 'Completed' ? 'Open' : 'Completed';
@@ -61,13 +56,11 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
             transaction_id: transactionId,
             task_status: updatedStatus,
             stage_id: stageId,
-            skip_reason: skipReason,
           }),
         }
       );
 
       if (response.ok) {
-        // showSuccessToast('Task status updated successfully.');
         await fetchData();
       } else {
         console.error('Failed to update task status');
@@ -105,7 +98,6 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
       );
 
       if (response.ok) {
-        // showSuccessToast('Tasks duplicated successfully.');
         await fetchData();
       } else {
         console.error('Failed to duplicate tasks');
@@ -118,16 +110,6 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
   useEffect(() => {
     fetchData();
   }, [transactionId]);
-
-  const handleSkipConfirm = (reason) => {
-    if (taskToSkip) {
-      const { transactionDetailId, stageId } = taskToSkip;
-      handleCheckboxChange(transactionDetailId, 'Completed', stageId, reason);
-      setTaskToSkip(null);
-    }
-    setShowSkipModal(false);
-    setShowRowDrawer(false);
-  };
 
   const handleDuplicateConfirm = (count, repeatInterval, frequency) => {
     if (taskToDuplicate) {
@@ -205,35 +187,10 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                       </label>
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {cleanText(task.task_name)}{' '}
-                      {task.skip_reason && task.task_status !== 'Completed' && (
-                        <div className="text-sm text-gray-500">
-                          Task is skipped with reason: {task.skip_reason}
-                        </div>
-                      )}
+                      {cleanText(task.task_name)}
                     </td>
                     <td className="py-2 px-2 text-nowrap border-b">
                       {formatDate(new Date(`${task.task_due_date}T00:00:00Z`))}
-                      {/* {task.task_due_date
-                        ? (() => {
-                            const daysRemaining = Math.ceil(
-                              (new Date(task.task_due_date).getTime() -
-                                new Date().getTime()) /
-                                (1000 * 60 * 60 * 24)
-                            );
-                            if (daysRemaining === 0) {
-                              return 'Today';
-                            } else if (daysRemaining === 1) {
-                              return `${daysRemaining} day`;
-                            } else if (daysRemaining > 1) {
-                              return `${daysRemaining} days`;
-                            } else {
-                              return `${daysRemaining} day${
-                                daysRemaining === -1 ? '' : 's'
-                              }`;
-                            }
-                          })()
-                        : 'N/A'} */}
                     </td>
                   </tr>
                 ))}
@@ -295,16 +252,9 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
         setShowRowDrawer={setShowRowDrawer}
         task={selectedTask} // Pass the selected task
         setShowDuplicateModal={setShowDuplicateModal}
-        setShowSkipModal={setShowSkipModal}
-        setTaskToSkip={setTaskToSkip}
         setTaskToDuplicate={setTaskToDuplicate}
         transactionId={transactionId}
         onUpdate={fetchData}
-      />
-      <SkipModal
-        showSkipModal={showSkipModal}
-        setShowSkipModal={setShowSkipModal}
-        onConfirm={handleSkipConfirm}
       />
       <DuplicateModal
         showDuplicateModal={showDuplicateModal}
@@ -320,8 +270,6 @@ const RowDrawer = ({
   setShowRowDrawer,
   task,
   setShowDuplicateModal,
-  setShowSkipModal,
-  setTaskToSkip,
   setTaskToDuplicate,
   transactionId,
   onUpdate,
@@ -329,15 +277,7 @@ const RowDrawer = ({
   const handleClose = () => {
     setShowRowDrawer(false);
   };
-  const handleSkipClick = () => {
-    if (!task.is_skipped) {
-      setTaskToSkip({
-        transactionDetailId: task.transaction_detail_id,
-        stageId: task.stage_id,
-      });
-      setShowSkipModal(true);
-    }
-  };
+
   const handleDuplicateClick = () => {
     const date = new Date(`${task.task_due_date}T00:00:00Z`);
     setTaskToDuplicate({
@@ -374,18 +314,6 @@ const RowDrawer = ({
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Transaction</h2>
                 <div className="flex items-center space-x-2">
-                  <div
-                    title={task.is_skipped ? 'Task is skipped' : 'Skip Task'}
-                    onClick={handleSkipClick}
-                  >
-                    <TrashIcon
-                      className={`w-6 h-6 text-gray-500 ${
-                        task.is_skipped
-                          ? 'cursor-not-allowed'
-                          : 'cursor-pointer'
-                      }`}
-                    />
-                  </div>
                   <div title="Repeat Task" onClick={handleDuplicateClick}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -417,63 +345,6 @@ const RowDrawer = ({
             </div>
           </motion.div>
         </>
-      )}
-    </AnimatePresence>
-  );
-};
-
-const SkipModal = ({ showSkipModal, setShowSkipModal, onConfirm }) => {
-  const [reason, setReason] = useState('');
-
-  const handleClose = () => {
-    setReason('');
-    setShowSkipModal(false);
-  };
-
-  const handleSubmit = () => {
-    if (reason.trim()) {
-      onConfirm(reason);
-      handleClose();
-    } else {
-      alert('Please provide a reason for skipping.');
-    }
-  };
-
-  return (
-    <AnimatePresence>
-      {showSkipModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-        >
-          <div className="bg-white rounded-lg p-6 w-1/3">
-            <h3 className="text-lg font-bold mb-4">Reason for Skipping</h3>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="w-full border-2 rounded p-2 focus:outline-none"
-              rows="3"
-              placeholder="Enter your reason here..."
-              required
-            ></textarea>
-            <div className="flex justify-end mt-4 space-x-2">
-              <button
-                className="bg-gray-300 text-gray-800 font-semibold px-4 py-2 rounded"
-                onClick={handleClose}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-gray-700 text-white px-4 py-2 rounded"
-                onClick={handleSubmit}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </motion.div>
       )}
     </AnimatePresence>
   );
