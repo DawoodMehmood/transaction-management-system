@@ -292,6 +292,7 @@ exports.getAllTransactionsCalendar = async (req, res) => {
                 tkg.state s ON t.state = s.state
             WHERE 
                 td.date_id = d.date_id
+                AND td.is_skipped = FALSE
             ORDER BY 
                 task_due_date;
         `;

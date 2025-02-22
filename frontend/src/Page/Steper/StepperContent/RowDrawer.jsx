@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { getServerUrl } from '../../../utility/getServerUrl';
-import { showErrorToast, showSuccessToast } from '../../../toastConfig';
+import { showErrorToast } from '../../../toastConfig';
 import DatePicker from 'react-datepicker';
 import { CalendarIcon } from '@heroicons/react/outline';
 import {
   formatDate,
-  formatDateADayBefore,
   getDateADayAfter,
+  formatDateADayBefore,
 } from '../../../utility/getFormattedDate';
 
 const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
-  const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(
     task.task_due_date ? new Date(`${task.task_due_date}T00:00:00Z`) : null
   );
@@ -85,10 +84,11 @@ const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
         {showDatePicker && (
           <div className="absolute top-full left-0 z-10">
             <DatePicker
-              selected={getDateADayAfter(date)}
-              onChange={(date) => {
-                setDate(date);
+              selected={isUserSelected ? date : getDateADayAfter(date)}
+              onChange={(newdate) => {
+                setDate(newdate);
                 setIsUserSelected(true); // Mark that the user manually selected a date
+                setShowDatePicker(false);
               }}
               inline
               calendarClassName="custom-calendar"

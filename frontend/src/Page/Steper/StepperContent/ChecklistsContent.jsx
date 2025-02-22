@@ -469,7 +469,7 @@ const SkipModal = ({ showSkipModal, setShowSkipModal, onConfirm }) => {
                 className="bg-gray-700 text-white px-4 py-2 rounded"
                 onClick={handleSubmit}
               >
-                Save
+                Skip
               </button>
             </div>
           </div>

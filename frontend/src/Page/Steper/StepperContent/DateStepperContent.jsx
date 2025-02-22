@@ -3,7 +3,10 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { getServerUrl } from '../../../utility/getServerUrl';
 import { showSuccessToast, showWarningToast } from '../../../toastConfig';
-import { formatDate } from '../../../utility/getFormattedDate';
+import {
+  formatDate,
+  getDateADayAfter,
+} from '../../../utility/getFormattedDate';
 
 const DateFields = ({ transactionId, createdBy, state, stageId }) => {
   console.log('Date content', transactionId, createdBy, state, stageId);
@@ -202,7 +205,7 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
               {openPickerIndex == index && (
                 <div className="absolute top-full left-0 z-10">
                   <DatePicker
-                    selected={selectedDates[index]}
+                    selected={getDateADayAfter(selectedDates[index])}
                     onChange={(date) => handleDateChange(date, index)}
                     inline
                     calendarClassName="custom-calendar"
