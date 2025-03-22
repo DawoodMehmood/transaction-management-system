@@ -68,12 +68,14 @@ const Sidebar = ({
       );
     }).length,
     overdue: tasks.filter((task) => {
-      const oneDayBeforeNow = new Date();
-      oneDayBeforeNow.setDate(oneDayBeforeNow.getDate() - 1);
+      const now = new Date();
+      const oneDayAndSixHoursAgo = new Date(
+        now.getTime() - 1 * 24 * 60 * 60 * 1000 - 6 * 60 * 60 * 1000
+      ); // 1 day and 6 hours ago
       return (
         task.taskStatus === 'Open' &&
         task.enteredDate &&
-        task.enteredDate <= oneDayBeforeNow
+        task.enteredDate <= oneDayAndSixHoursAgo
       );
     }).length,
     finished: tasks.filter((task) => task.taskStatus === 'Completed').length,

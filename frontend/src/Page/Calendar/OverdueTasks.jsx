@@ -77,9 +77,10 @@ export const OverdueTasks = ({ setupdatedLoading }) => {
         //   setTasksByStage(tasksByStage);
 
         if (data && data.transactions) {
-          const today = new Date();
-          const oneDayBeforeNow = new Date();
-          oneDayBeforeNow.setDate(oneDayBeforeNow.getDate() - 1);
+          const now = new Date();
+          const oneDayAndSixHoursAgo = new Date(
+            now.getTime() - 1 * 24 * 60 * 60 * 1000 - 6 * 60 * 60 * 1000
+          ); // 1 day and 6 hours ago
 
           // Flatten, filter, and sort overdue tasks
           const allTasks = data.transactions
@@ -102,7 +103,7 @@ export const OverdueTasks = ({ setupdatedLoading }) => {
               // Check if task is overdue (past entered date and still open)
               return (
                 task.enteredDate &&
-                task.enteredDate <= oneDayBeforeNow &&
+                task.enteredDate <= oneDayAndSixHoursAgo &&
                 task.task_status === 'Open'
               );
             })
