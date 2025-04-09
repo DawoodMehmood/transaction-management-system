@@ -1,18 +1,13 @@
 // src/components/MainContent.jsx
 import React from 'react';
-import AllCalenderTasks from './AllCalenderTasks.jsx';
-import OverdueTask from './OverdueTasks.jsx';
-import ScheduledTask from './ScheduledTasks.jsx';
-import { FinishedTasks } from './TaskComponents';
-import ThisMonthTask from './ThisMonthTasks.jsx';
-import ThisWeekTask from './ThisWeekTasks.jsx';
-import TodayTasks from './TodayTasks.jsx';
+import { AllTasks, FinishedTasks, OverdueTasks, SkippedTasks, ThisMonthTasks, ThisWeekTasks, TodayTasks } from './TaskComponents';
+
 const MainContent = ({
   myTasksSelectedTab,
   teamTasksSelectedTab,
   activeSection,
-  setupdatedLoading,
   reloadTasks,
+  tasks
 }) => {
   const displayTab =
     activeSection === 'My Tasks' ? myTasksSelectedTab : teamTasksSelectedTab;
@@ -20,19 +15,19 @@ const MainContent = ({
   const renderContent = () => {
     switch (displayTab) {
       case 'All Tasks':
-        return <AllCalenderTasks setupdatedLoading={setupdatedLoading} />;
-      case 'Scheduled':
-        return <ScheduledTask />;
+        return <AllTasks reloadTasks={reloadTasks} tasks={tasks} />;
       case 'Today':
-        return <TodayTasks setupdatedLoading={setupdatedLoading} />;
+        return <TodayTasks reloadTasks={reloadTasks} tasks={tasks} />;
       case 'This Week':
-        return <ThisWeekTask setupdatedLoading={setupdatedLoading} />;
+        return <ThisWeekTasks reloadTasks={reloadTasks} tasks={tasks} />;
       case 'This Month':
-        return <ThisMonthTask setupdatedLoading={setupdatedLoading} />;
+        return <ThisMonthTasks reloadTasks={reloadTasks} tasks={tasks} />;
       case 'Overdue':
-        return <OverdueTask setupdatedLoading={setupdatedLoading} />;
+        return <OverdueTasks reloadTasks={reloadTasks} tasks={tasks} />;
+      case 'Skipped':
+        return <SkippedTasks reloadTasks={reloadTasks} tasks={tasks} />;
       case 'Finished':
-        return <FinishedTasks reloadTasks={reloadTasks} />;
+        return <FinishedTasks reloadTasks={reloadTasks} tasks={tasks} />;
       default:
         return <h2>Please select a tab from the sidebar</h2>;
     }

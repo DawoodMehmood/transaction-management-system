@@ -3,32 +3,41 @@ import NavBar from '../../Components/NavBar';
 import MainContent from './MainContent.jsx';
 import Sidebar from './Sidebar/Sidebar.jsx';
 import { fetchTasks } from './TaskComponents.jsx';
-import TopNav from './TopNav.jsx';
+import { showErrorToast } from '../../toastConfig';
 
 const Index = () => {
   const [myTasksSelectedTab, setMyTasksSelectedTab] = useState('All Tasks');
   const [teamTasksSelectedTab, setTeamTasksSelectedTab] = useState('');
   const [activeSection, setActiveSection] = useState('My Tasks');
   const [tasks, setTasks] = useState([]);
-  const [updatedLoading, setupdatedLoading] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(false);
 
+  // New state for filters:
+  const [selectedState, setSelectedState] = useState(''); // e.g., "IL" or empty for all
+  const [selectedTransactionType, setSelectedTransactionType] = useState(''); // e.g., "listing" or "buyer"
+
   const fetchData = async () => {
-    const data = await fetchTasks();
-    setTasks(data);
-    setupdatedLoading(false); // Reset loading after data fetch
-    setReloadTrigger(false); // Reset loading after data fetch
-  };
-
-  useEffect(() => {
-    if (updatedLoading || reloadTrigger) {
-      fetchData();
+    try {
+      const data = await fetchTasks(selectedState, selectedTransactionType);
+      setTasks(data);
+    } catch (error) {
+      setTasks([]);
+      // showErrorToast('No tasks found');
+    } finally {
+      setReloadTrigger(false);
     }
-  }, [updatedLoading, reloadTrigger]); // Re-fetch tasks when updatedLoading is true
+  };
+  
 
+  // Re-fetch tasks when filters change or reload is triggered
   useEffect(() => {
+    if (!selectedState) {
+      // If either filter is missing, clear tasks (or do nothing)
+      setTasks([]);
+      return;
+    }
     fetchData();
-  }, []);
+  }, [reloadTrigger, selectedState]);
 
   return (
     <div>
@@ -45,16 +54,19 @@ const Index = () => {
                 setActiveSection={setActiveSection}
                 activeSection={activeSection}
                 tasks={tasks}
+                selectedState={selectedState}
+                setSelectedState={setSelectedState}
+                selectedTransactionType={selectedTransactionType}
+                setSelectedTransactionType={setSelectedTransactionType}
               />
             </div>
             <div className='col-span-9 lg:col-span-10'>
-              <TopNav />
               <MainContent
                 myTasksSelectedTab={myTasksSelectedTab}
                 teamTasksSelectedTab={teamTasksSelectedTab}
                 activeSection={activeSection}
-                setupdatedLoading={setupdatedLoading}
                 reloadTasks={() => setReloadTrigger(true)}
+                tasks={tasks}
               />
             </div>
           </div>

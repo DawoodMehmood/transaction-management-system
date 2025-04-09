@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getServerUrl } from '../../utility/getServerUrl';
 import { showErrorToast } from '../../toastConfig';
+import { apiFetch } from '../../utility/apiFetch';
 
-const AddTaskForm = ({ closeModal, dateFields, currentStageId, reload }) => {
+const AddTaskForm = ({ closeModal, dateFields, currentStageId, reload, availableStages, selectedState, selectedTransactionType }) => {
   const [stage_id, setStageId] = useState(currentStageId); // Store stage_id
   const [createdBy, setCreatedBy] = useState(''); // Editable createdBy field
-  const [state, setState] = useState('IL'); // Default state set to 'IL'
 
   const [taskName, setTaskName] = useState('');
   const [bindDate, setBindDate] = useState('');
@@ -31,7 +30,8 @@ const AddTaskForm = ({ closeModal, dateFields, currentStageId, reload }) => {
       !taskName ||
       taskDays === undefined ||
       !bindDate ||
-      !state ||
+      !selectedState ||
+      !selectedTransactionType ||
       !stage_id ||
       !createdBy
     ) {
@@ -43,7 +43,7 @@ const AddTaskForm = ({ closeModal, dateFields, currentStageId, reload }) => {
       task_name: taskName,
       date_id: bindDate,
       task_days: taskDays,
-      state,
+      state: selectedState,
       stage_id: parseInt(stage_id),
       delete_ind: false,
       created_by: createdBy,
@@ -51,11 +51,12 @@ const AddTaskForm = ({ closeModal, dateFields, currentStageId, reload }) => {
       frequency: isRepeatable ? frequency : null,
       interval: isRepeatable ? interval : null,
       interval_type: isRepeatable ? intervalType : null,
+      transaction_type: selectedTransactionType
     };
 
     console.log('Payload being sent:', payload);
     try {
-      const response = await fetch(`${getServerUrl()}/api/tasks/add`, {
+      const response = await apiFetch(`${getServerUrl()}/api/tasks/add?state=${selectedState}&transaction_type=${selectedTransactionType}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,9 +153,11 @@ const AddTaskForm = ({ closeModal, dateFields, currentStageId, reload }) => {
           className="w-full px-4 py-2 border border-gray-300 rounded-md"
         >
           <option value="">Select Stage</option>
-          <option value="1">Pre Listing</option>
-          <option value="2">Active Listing</option>
-          <option value="3">Under Contract</option>
+          {availableStages.map((stage) => (
+            <option key={stage.stage_id} value={stage.stage_id}>
+              {stage.stage_name}
+            </option>
+          ))}
         </select>
       </div>
 

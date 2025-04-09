@@ -4,7 +4,8 @@ import ChecklistsContent from './StepperContent/ChecklistsContent';
 import DatesContent from './StepperContent/DateStepperContent.jsx';
 import PropertyContent from './StepperContent/PropertyContent';
 import { getServerUrl } from '../../utility/getServerUrl';
-import { showErrorToast, showSuccessToast } from '../../toastConfig.js';
+import { showErrorToast } from '../../toastConfig.js';
+import { apiFetch } from '../../utility/apiFetch';
 
 const Stepper = ({
   selectedOption,
@@ -13,6 +14,7 @@ const Stepper = ({
   createdBy,
   state,
   price,
+  transactionType,
   fullAddress,
   currentStep,
   setCurrentStep,
@@ -27,14 +29,14 @@ const Stepper = ({
     const fetchStages = async () => {
       try {
         // Fetch stages from API
-        const stagesResponse = await fetch(
-          `${getServerUrl()}/api/transactions/stages`
+        const stagesResponse = await apiFetch(
+          `${getServerUrl()}/api/transactions/stages?state=${state}&transaction_type=${transactionType}`
         );
         const stagesData = await stagesResponse.json();
         console.log('stages', stagesData);
 
-        const fetchedSteps = stagesData.map((stage) => stage.stage_name);
-        const fetchedStepsIds = stagesData.map((stage) => stage.stage_id);
+        const fetchedSteps = stagesData.stages.map((stage) => stage.stage_name);
+        const fetchedStepsIds = stagesData.stages.map((stage) => stage.stage_id);
 
         // Determine completion based on available `currentStep`
         let completionStatus;
@@ -93,7 +95,7 @@ const Stepper = ({
     });
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${getServerUrl()}/api/transactions/${transactionKey}/stage`,
         {
           method: 'PATCH',
@@ -141,6 +143,7 @@ const Stepper = ({
             state={state}
             transactionId={transactionId}
             stageId={currentStep}
+            transactionType={transactionType}
           />
         );
       case 'Property':
@@ -156,6 +159,8 @@ const Stepper = ({
           <ChecklistsContent
             currentStep={currentStep}
             transactionId={transactionId}
+            transactionType={transactionType}
+            state={state}
           />
         );
 

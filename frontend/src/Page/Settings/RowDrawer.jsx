@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { getServerUrl } from '../../utility/getServerUrl';
 import { showErrorToast } from './../../toastConfig';
 import { cleanText } from '../../utility/getCleanText';
+import { apiFetch } from '../../utility/apiFetch';
 
 const RowForm = ({ closeModal, task, dateFields, onUpdate }) => {
   const [taskName, setTaskName] = useState(task.task_name || '');
@@ -21,6 +22,7 @@ const RowForm = ({ closeModal, task, dateFields, onUpdate }) => {
       date_id: bindDate,
       task_days: taskDays,
       is_repeatable: isRepeatable,
+      transaction_type: task.transaction_type,
       ...(isRepeatable && {
         frequency,
         interval,
@@ -31,8 +33,8 @@ const RowForm = ({ closeModal, task, dateFields, onUpdate }) => {
     console.log('Request Body:', requestBody);
 
     try {
-      const response = await fetch(
-        `${getServerUrl()}/api/tasks/${task.task_id}`,
+      const response = await apiFetch(
+        `${getServerUrl()}/api/tasks/${task.task_id}?state=${task.state}&transaction_type=${task.transaction_type}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

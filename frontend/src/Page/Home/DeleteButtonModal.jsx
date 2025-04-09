@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { getServerUrl } from '../../utility/getServerUrl';
 import { showErrorToast, showSuccessToast } from '../../toastConfig';
+import { apiFetch } from '../../utility/apiFetch';
 
-const DeleteTransactionForm = ({ closeModal }) => {
+const DeleteTransactionForm = ({ closeModal, transactionType }) => {
   const [transactions, setTransactions] = useState([]);
   const [selectedTransactions, setSelectedTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +12,7 @@ const DeleteTransactionForm = ({ closeModal }) => {
     const fetchTransactions = async () => {
       try {
         setLoading(true); // Start loading
-        const response = await fetch(`${getServerUrl()}/api/transactions`);
+        const response = await apiFetch(`${getServerUrl()}/api/transactions?transaction_type=${transactionType}`);
         const data = await response.json();
 
         const mappedData = data.transactions.map((transaction) => {
@@ -60,7 +61,7 @@ const DeleteTransactionForm = ({ closeModal }) => {
     }
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${getServerUrl()}/api/transactions/bulk-delete`,
         {
           method: 'DELETE',
@@ -119,7 +120,8 @@ const DeleteTransactionForm = ({ closeModal }) => {
               {transactions.map((row, index) => (
                 <tr
                   key={index}
-                  className="border-b text-nowrap hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleCheckboxChange(row.transaction_id)}
+                  className="border-b text-nowrap hover:bg-gray-50 cursor-pointer select-none"
                 >
                   <td className="py-2 px-4 border-b">
                     <label className="flex items-center space-x-2">
@@ -128,6 +130,7 @@ const DeleteTransactionForm = ({ closeModal }) => {
                         checked={selectedTransactions.includes(
                           row.transaction_id
                         )}
+                        onClick={(e) => e.stopPropagation()} // Prevent row click event when clicking checkbox
                         onChange={() =>
                           handleCheckboxChange(row.transaction_id)
                         }

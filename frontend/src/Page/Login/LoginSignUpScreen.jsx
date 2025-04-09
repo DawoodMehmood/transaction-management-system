@@ -1,9 +1,10 @@
 // Import dependencies
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getServerUrl } from '../../utility/getServerUrl';
-import { showErrorToast, showSuccessToast } from '../../toastConfig';
+import { showErrorToast } from '../../toastConfig';
+import { apiFetch } from '../../utility/apiFetch';
 
 const LoginSignUpScreen = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,14 @@ const LoginSignUpScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
 
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Check if user is already logged in
+    const user = localStorage.getItem('user');
+    if (user) {
+      navigate('/Transactions'); // Redirect to Transactions if logged in
+    }
+  }, [navigate]);
 
   // Handle input change
   const handleChange = (e) => {
@@ -25,7 +34,7 @@ const LoginSignUpScreen = () => {
   const handleLogin = async () => {
     const { email, password } = formData;
     try {
-      const response = await fetch(`${getServerUrl()}/api/auth/login`, {
+      const response = await apiFetch(`${getServerUrl()}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +66,7 @@ const LoginSignUpScreen = () => {
     }
 
     try {
-      const response = await fetch(`${getServerUrl()}/api/auth/signup`, {
+      const response = await apiFetch(`${getServerUrl()}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +198,7 @@ const LoginSignUpScreen = () => {
           )}
         </form>
 
-        <div className="text-center mt-4">
+        {/* <div className="text-center mt-4">
           <span className="text-gray-700">
             {isLogin ? 'Don’t have an account? ' : 'Already have an account? '}
             <Link
@@ -200,7 +209,7 @@ const LoginSignUpScreen = () => {
               {isLogin ? 'Sign-Up' : 'Login'}
             </Link>
           </span>
-        </div>
+        </div> */}
       </motion.div>
     </div>
   );
