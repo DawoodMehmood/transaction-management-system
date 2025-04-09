@@ -3,7 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 import { getServerUrl } from '../../utility/getServerUrl';
 import { getFormattedPrice } from '../../utility/getFormattedPrice';
-import { showSuccessToast } from '../../toastConfig';
+import { showErrorToast, showSuccessToast } from '../../toastConfig';
+import { PencilIcon, XIcon, CheckIcon } from '@heroicons/react/solid';
+import { CalendarIcon } from '@heroicons/react/outline';
+import { apiFetch } from '../../utility/apiFetch';
 
 const Toolbar = ({ onSearch, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,7 +17,7 @@ const Toolbar = ({ onSearch, onRefresh }) => {
   };
 
   return (
-    <div className="grid grid-cols-12 gap-4 border-border-1 justify-between p-2 items-center">
+    <div className="grid grid-cols-12 gap-4 border-border-1 justify-between p-5 items-center">
       {/* Search input */}
       <div className="col-span-12 md:col-span-5">
         <input
@@ -40,10 +43,11 @@ const Toolbar = ({ onSearch, onRefresh }) => {
   );
 };
 
-const TableWithToolbar = ({ refreshKey }) => {
+const TableWithToolbar = ({ refreshKey, triggerFresh }) => {
   const [transactions, setTransactions] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [priceEdits, setPriceEdits] = useState({});
   const itemsPerPage = 10;
   const navigate = useNavigate(); // Initialize the useNavigate hook
 
@@ -53,7 +57,7 @@ const TableWithToolbar = ({ refreshKey }) => {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch(`${getServerUrl()}/api/transactions`);
+      const response = await apiFetch(`${getServerUrl()}/api/transactions?transaction_type=listing`);
       const data = await response.json();
       // showSuccessToast(data.message);
 
@@ -64,7 +68,7 @@ const TableWithToolbar = ({ refreshKey }) => {
         const state = transaction.state || ''; // Set empty string if null/undefined
 
         // Combine the parts into fullAddress, excluding any empty parts
-        const fullAddress = `${address1} ${address2}, ${city}, ${state}`.trim();
+        const fullAddress = `${address1}${address2 ? ` ${address2}`: ''}, ${city}, ${state}`.trim();
         return {
           transaction_id: transaction.transaction_id,
           state_id: transaction.state,
@@ -125,6 +129,7 @@ const TableWithToolbar = ({ refreshKey }) => {
         price: row.list_price,
         currentStep: row.currentStep,
         fullAddress: row.fullAddress, // Pass the full address here
+        transactionType: 'listing'
       },
     });
   };
@@ -134,6 +139,73 @@ const TableWithToolbar = ({ refreshKey }) => {
     setFilteredData(updatedTransactions);
   };
 
+  // Price editing functions
+  const handlePriceEditClick = (transactionId, currentPrice, e) => {
+    e.stopPropagation();
+    // If the price is an integer, store it without decimals, otherwise preserve the decimals.
+    const formattedPrice =
+      Number(currentPrice) % 1 === 0
+        ? String(Number(currentPrice))
+        : String(Number(currentPrice).toFixed(2));
+    setPriceEdits((prev) => ({ ...prev, [transactionId]: formattedPrice }));
+  };
+  
+
+  const handlePriceChange = (transactionId, value, e) => {
+    e.stopPropagation();
+    setPriceEdits((prev) => ({ ...prev, [transactionId]: value }));
+  };
+
+  const handlePriceCancel = (transactionId, e) => {
+    if (e) e.stopPropagation();
+    setPriceEdits((prev) => {
+      const newEdits = { ...prev };
+      delete newEdits[transactionId];
+      return newEdits;
+    });
+  };
+
+  const handlePriceSave = async (transactionId, e) => {
+    e.stopPropagation();
+    const newPrice = priceEdits[transactionId];
+    const originalTransaction = filteredData.find(
+      (row) => row.transaction_id === transactionId
+    );
+    if (!originalTransaction) return;
+    // If the price hasn't changed, cancel editing
+    if (Number(newPrice) === Number(originalTransaction.list_price)) {
+      handlePriceCancel(transactionId);
+      return;
+    }
+    try {
+      const response = await apiFetch(
+        `${getServerUrl()}/api/transactions/update-price`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transactionId, newPrice: Number(newPrice) }),
+        }
+      );
+      if (response.ok) {
+        const updatedTransactions = filteredData.map((row) => {
+          if (row.transaction_id === transactionId) {
+            return { ...row, list_price: Number(newPrice) };
+          }
+          return row;
+        });
+        triggerFresh()
+        setFilteredData(updatedTransactions);
+        handlePriceCancel(transactionId);
+      } else {
+        console.error('Failed to update price');
+        showErrorToast('Failed to update price')
+      }
+    } catch (error) {
+      console.error('Error updating price:', error);
+    }
+  };
+
+
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const currentPageData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -142,11 +214,11 @@ const TableWithToolbar = ({ refreshKey }) => {
 
   return (
     <div>
-      <div className=" bg-white">
+      <div className="rounded-lg bg-white">
         <Toolbar onSearch={handleSearch} onRefresh={fetchTransactions} />
       </div>
-      <div className="h-96 border border-1  bg-white mb-10 overflow-x-auto lg:overflow-x-hidden overflow-y-auto custom-scrollbar">
-        <div className=" ">
+      <div className="h-96 bg-white mb-10 shadow-md rounded-lg overflow-x-auto lg:overflow-x-hidden overflow-y-auto custom-scrollbar">
+        <div className="p-5">
           <motion.table
             className="min-w-full table-auto  shadow-lg rounded-lg"
             initial={{ opacity: 0, y: 50 }}
@@ -175,11 +247,10 @@ const TableWithToolbar = ({ refreshKey }) => {
                 <motion.tr
                   key={index}
                   onClick={() => handleRowClick(row)} // Add row click handler
-                  whileHover={{ scale: 1.02 }}
                   className="border-b text-nowrap hover:bg-gray-50 cursor-pointer"
                 >
                   <td className="px-4 py-2 text-gray-600">
-                    {row.address1} {row.address2} {row.city} {row.state}
+                    {row.address1}{row.address2 ? ` ${row.address2}`: ''}, {row.city}, {row.state}
                   </td>
                   <td className="px-4 py-2 text-gray-600">
                     {row.first_name} {row.last_name}
@@ -207,20 +278,7 @@ const TableWithToolbar = ({ refreshKey }) => {
                         datePicker.click();
                       }}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6 text-gray-500 hover:text-gray-900"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M8 7V3m8 4V3m-9 8h10m-10 4h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
+                      <CalendarIcon className='size-5 text-gray-700' />
                     </button>
                     <input
                       type="date"
@@ -230,7 +288,62 @@ const TableWithToolbar = ({ refreshKey }) => {
                     />
                   </td>
                   <td className="px-4 py-2 text-gray-600">
-                    ${getFormattedPrice(row.list_price)}
+                    {priceEdits[row.transaction_id] !== undefined ? (
+                      <div className="flex items-center">
+                        <input
+                          type="number"
+                          className="border border-gray-300 rounded px-2 py-1 w-24"
+                          value={priceEdits[row.transaction_id]}
+                          onChange={(e) =>
+                            handlePriceChange(
+                              row.transaction_id,
+                              e.target.value,
+                              e
+                            )
+                          }
+                          onClick={(e) => e.stopPropagation()}
+                          onFocus={(e) => e.stopPropagation()}
+                          />
+                        <button
+                          onClick={(e) =>
+                            handlePriceCancel(row.transaction_id, e)
+                          }
+                          className="ml-2"
+                          title="Cancel"
+                        >
+                          <XIcon className="size-4 text-red-600" />
+
+                        </button>
+                        <button
+                          onClick={(e) =>
+                            handlePriceSave(row.transaction_id, e)
+                          }
+                          className="ml-2"
+                          title="Save"
+                        >
+                          <CheckIcon className='size-5 text-green-600' />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <span>
+                          ${getFormattedPrice(row.list_price)}
+                        </span>
+                        <button
+                          onClick={(e) =>
+                            handlePriceEditClick(
+                              row.transaction_id,
+                              row.list_price,
+                              e
+                            )
+                          }
+                          className="ml-2"
+                          title="Edit Price"
+                        >
+                          <PencilIcon className='size-5 text-gray-700' />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </motion.tr>
               ))}

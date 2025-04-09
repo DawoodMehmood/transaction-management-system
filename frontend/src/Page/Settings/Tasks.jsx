@@ -5,6 +5,7 @@ import RowForm from './RowDrawer.jsx';
 import { TrashIcon, XIcon } from '@heroicons/react/outline';
 import { getServerUrl } from '../../utility/getServerUrl';
 import { showErrorToast } from './../../toastConfig';
+import { apiFetch } from '../../utility/apiFetch';
 
 export const Tasks = ({ tasks, dateFields, reload }) => {
   const [showRowDrawer, setShowRowDrawer] = useState(false);
@@ -23,17 +24,18 @@ export const Tasks = ({ tasks, dateFields, reload }) => {
 
   const handleDelete = async (taskToDelete) => {
     try {
-      const response = await fetch(
-        `${getServerUrl()}/api/tasks/${taskToDelete.taskId}`,
+      const response = await apiFetch(
+        `${getServerUrl()}/api/tasks/${taskToDelete.task_id}?state=${taskToDelete.state}&transaction_type=${taskToDelete.transaction_type}`,
         {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            taskId: taskToDelete.taskId,
+            taskId: taskToDelete.task_id,
             state: taskToDelete.state,
-            stageId: taskToDelete.stageId,
+            stageId: taskToDelete.stage_id,
+            transaction_type: taskToDelete.transaction_type
           }),
         }
       );
@@ -138,11 +140,7 @@ const RowDrawer = ({
   };
 
   const handleDeleteClick = () => {
-    setTaskToDelete({
-      taskId: task.task_id,
-      stageId: task.stage_id,
-      state: task.state,
-    });
+    setTaskToDelete(task);
     setShowDeleteModal(true);
   };
 

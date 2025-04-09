@@ -3,6 +3,7 @@ import NavBar from '../../Components/NavBar';
 import MainContent from './MainContent.jsx';
 import Sidebar from './Sidebar/Sidebar.jsx';
 import { getServerUrl } from '../../utility/getServerUrl';
+import { apiFetch } from '../../utility/apiFetch';
 
 const Index = () => {
   const [myTasksSelectedTab, setMyTasksSelectedTab] = useState('Pre Listing');
@@ -11,10 +12,16 @@ const Index = () => {
   const [tasks, setTasks] = useState([]);
   const [reloadTrigger, setReloadTrigger] = useState(false);
   const [dateFields, setDateFields] = useState([]); // Static date fields
-
+  
+  // New state for filters:
+  const [selectedState, setSelectedState] = useState(''); // e.g., "IL" or empty for all
+  const [selectedTransactionType, setSelectedTransactionType] = useState(''); // e.g., "listing" or "buyer"
+  const [selectedStageId, setSelectedStageId] = useState(null);
+  const [availableStages, setAvailableStages] = useState([]);
+  
   const fetchData = async () => {
     try {
-      const response = await fetch(`${getServerUrl()}/api/tasks`);
+      const response = await apiFetch(`${getServerUrl()}/api/tasks?state=${selectedState}&transaction_type=${selectedTransactionType}`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -29,7 +36,7 @@ const Index = () => {
 
   const fetchAllDateFields = async () => {
     try {
-      const response = await fetch(`${getServerUrl()}/api/transactions/dates`);
+      const response = await apiFetch(`${getServerUrl()}/api/transactions/dates?state=${selectedState}&transaction_type=${selectedTransactionType}`);
       if (!response.ok) throw new Error('Failed to fetch date fields.');
       const data = await response.json();
       setDateFields(data);
@@ -37,17 +44,48 @@ const Index = () => {
       console.error('Error fetching date fields:', error);
     }
   };
-
-  useEffect(() => {
-    if (reloadTrigger) {
+  
+    // Re-fetch tasks when filters change or reload is triggered
+    useEffect(() => {
+      if (!selectedState || !selectedTransactionType) {
+        // If either filter is missing, clear tasks (or do nothing)
+        setTasks([]);
+        setDateFields([]);
+        return;
+      }
       fetchData();
-    }
-  }, [reloadTrigger]); // Re-fetch tasks when updatedLoading is true
-
-  useEffect(() => {
-    fetchData();
-    fetchAllDateFields();
-  }, []);
+      fetchAllDateFields();
+    }, [reloadTrigger, selectedState, selectedTransactionType]);
+    
+    useEffect(() => {
+      if (selectedState && selectedTransactionType) {
+        const fetchStages = async () => {
+          try {
+            const response = await apiFetch(
+              `${getServerUrl()}/api/transactions/stages?state=${selectedState}&transaction_type=${selectedTransactionType}`
+            );
+            const data = await response.json();
+            if (response.ok) {
+              setAvailableStages(data.stages);
+              // Set default stage if not selected
+              if (!selectedStageId && data.stages.length > 0) {
+                setSelectedStageId(data.stages[0].stage_id);
+              }
+            } else {
+              throw new Error(data.error || 'Failed to fetch stages');
+            }
+          } catch (error) {
+            showErrorToast(error.message);
+          }
+        };
+  
+        fetchStages();
+      } else {
+        setAvailableStages([]);
+        setSelectedStageId(null);
+      }
+    }, [selectedState, selectedTransactionType, selectedStageId, setSelectedStageId]);
+    
 
   return (
     <div>
@@ -64,6 +102,13 @@ const Index = () => {
                 setActiveSection={setActiveSection}
                 activeSection={activeSection}
                 tasks={tasks}
+                selectedState={selectedState}
+                setSelectedState={setSelectedState}
+                selectedTransactionType={selectedTransactionType}
+                setSelectedTransactionType={setSelectedTransactionType}
+                selectedStageId={selectedStageId}
+                setSelectedStageId={setSelectedStageId}
+                availableStages={availableStages}
               />
             </div>
             <div className="col-span-9 lg:col-span-10">
@@ -74,6 +119,10 @@ const Index = () => {
                 reloadTasks={() => setReloadTrigger(true)}
                 tasks={tasks}
                 dateFields={dateFields}
+                selectedStageId={selectedStageId}
+                availableStages={availableStages}
+                selectedState={selectedState}
+                selectedTransactionType={selectedTransactionType}
               />
             </div>
           </div>

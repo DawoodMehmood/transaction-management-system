@@ -4,10 +4,11 @@ import { cleanText } from '../../../utility/getCleanText.js';
 import { AnimatePresence, motion } from 'framer-motion';
 import RowForm from './RowDrawer.jsx';
 import { TrashIcon, XIcon } from '@heroicons/react/outline';
-import { showSuccessToast } from './../../../toastConfig.js';
 import { formatDate } from '../../../utility/getFormattedDate.js';
+import AddForm from './AddbuttonModal.jsx';
+import { apiFetch } from '../../../utility/apiFetch';
 
-const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
+const ChecklistsContent = ({ currentStep, transactionId, transactionType, state }) => {
   console.log('Checklist content', currentStep, transactionId);
   const [stages, setStages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,12 +21,13 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
   const [showRowDrawer, setShowRowDrawer] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskToDuplicate, setTaskToDuplicate] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Fetch checklist data
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${getServerUrl()}/api/transactions/${transactionId}/details`
       );
       const data = await response.json();
@@ -52,7 +54,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
     const updatedStatus = taskStatus === 'Completed' ? 'Open' : 'Completed';
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${getServerUrl()}/api/transactions/${transactionDetailId}/status`,
         {
           method: 'PUT',
@@ -88,7 +90,7 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
     frequency
   ) => {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${getServerUrl()}/api/transactions/${transactionDetailId}/duplicate`,
         {
           method: 'POST',
@@ -200,8 +202,8 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
                         />
                         {loadingTransactionDetailId ===
                           task.transaction_detail_id && (
-                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
-                        )}
+                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-gray-600"></div>
+                          )}
                       </label>
                     </td>
                     <td className="py-2 px-4 border-b">
@@ -257,32 +259,50 @@ const ChecklistsContent = ({ currentStep, transactionId, setTaskCounts }) => {
   }
 
   if (!stages?.length) {
-    return <div>No checklist data available.</div>;
+    return <div className='p-5'>No checklist data available. Check if any date has been added.</div>;
   }
 
   return (
     <div>
       {/* Render tabs */}
-      <div className="tabs flex space-x-4 mb-4">
-        {stages.slice(0, currentStep).map((stage) => (
-          <button
-            key={stage.stage_id}
-            onClick={() => setActiveStage(stage.stage_id)}
-            className={`py-2 m-3 px-4 border-b-2 ${
-              activeStage == stage.stage_id
-                ? 'border-b-blue-500 text-blue-600'
-                : 'border-b-transparent text-gray-700'
-            }`}
+      <div className='flex justify-between'>
+        <div className="tabs flex space-x-4 mb-4">
+          {stages.slice(0, currentStep).map((stage) => (
+            <button
+              key={stage.stage_id}
+              onClick={() => setActiveStage(stage.stage_id)}
+              className={`py-2 m-3 px-4 border-b-2 ${activeStage == stage.stage_id
+                  ? 'border-b-blue-500 text-blue-600'
+                  : 'border-b-transparent text-gray-700'
+                }`}
+            >
+              {stage.stage_id == 1
+                ? 'Pre-Listing'
+                : stage.stage_id == 2
+                  ? 'Active Listing'
+                  : stage.stage_id == 3
+                    ? 'Under Contract'
+                    : `No stage`}
+            </button>
+          ))}
+        </div>
+        <div className='flex justify-center items-center mr-5'>
+          <div
+            className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-900"
+            onClick={() => setShowAddModal(true)}
           >
-            {stage.stage_id == 1
-              ? 'Pre-Listing'
-              : stage.stage_id == 2
-              ? 'Active Listing'
-              : stage.stage_id == 3
-              ? 'Under Contract'
-              : `No stage`}
-          </button>
-        ))}
+            + Add
+          </div>
+          <AddModal
+            isOpen={showAddModal}
+            setIsOpen={setShowAddModal}
+            currentStageId={activeStage}
+            reload={fetchData}
+            transactionType={transactionType}
+            state={state}
+            transactionId={transactionId}
+          />
+        </div>
       </div>
 
       {/* Render content for stages 1, 2, and 3 if activeStage is 3, else render the single active stage */}
@@ -379,11 +399,10 @@ const RowDrawer = ({
                     onClick={handleSkipClick}
                   >
                     <TrashIcon
-                      className={`w-6 h-6 text-gray-500 ${
-                        task.is_skipped
+                      className={`w-6 h-6 text-gray-500 ${task.is_skipped
                           ? 'cursor-not-allowed'
                           : 'cursor-pointer'
-                      }`}
+                        }`}
                     />
                   </div>
                   <div title="Repeat Task" onClick={handleDuplicateClick}>
@@ -539,31 +558,28 @@ const DuplicateModal = ({
                 <div className="w-2/3 flex">
                   <button
                     onClick={() => setFrequency('day')}
-                    className={`p-2 w-full ${
-                      frequency === 'day'
+                    className={`p-2 w-full ${frequency === 'day'
                         ? 'bg-gray-500 text-white'
                         : 'bg-gray-300'
-                    }`}
+                      }`}
                   >
                     Day(s)
                   </button>
                   <button
                     onClick={() => setFrequency('week')}
-                    className={`p-2 border border-x-gray-500 w-full ${
-                      frequency === 'week'
+                    className={`p-2 border border-x-gray-500 w-full ${frequency === 'week'
                         ? 'bg-gray-500 text-white'
                         : 'bg-gray-300'
-                    }`}
+                      }`}
                   >
                     Week(s)
                   </button>
                   <button
                     onClick={() => setFrequency('month')}
-                    className={`p-2 w-full ${
-                      frequency === 'month'
+                    className={`p-2 w-full ${frequency === 'month'
                         ? 'bg-gray-500 text-white'
                         : 'bg-gray-300'
-                    }`}
+                      }`}
                   >
                     Month(s)
                   </button>
@@ -585,6 +601,47 @@ const DuplicateModal = ({
               </button>
             </div>
           </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+const AddModal = ({
+  isOpen,
+  setIsOpen,
+  currentStageId,
+  reload,
+  transactionType,
+  state,
+  transactionId
+}) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setIsOpen(false)}
+          className="bg-slate-900/20 backdrop-blur p-8 fixed inset-0 z-50 grid place-items-center overflow-y-scroll cursor-pointer"
+        >
+          <motion.div
+            initial={{ scale: 0, rotate: '12.5deg' }}
+            animate={{ scale: 1, rotate: '0deg' }}
+            exit={{ scale: 0, rotate: '0deg' }}
+            onClick={(e) => e.stopPropagation()}
+            className="  shadow-xl cursor-default"
+          >
+            <AddForm
+              closeModal={() => setIsOpen(false)}
+              currentStageId={currentStageId}
+              reload={reload}
+              transactionType={transactionType}
+              state={state}
+              transactionId={transactionId}
+            />
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

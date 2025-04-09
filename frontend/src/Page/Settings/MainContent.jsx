@@ -11,16 +11,15 @@ const MainContent = ({
   reloadTasks,
   tasks,
   dateFields,
+  selectedStageId,
+  availableStages,
+  selectedState,
+  selectedTransactionType,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentStageId, setCurrentStageId] = useState(1);
-
-  const displayTab =
-    activeSection === 'Checklist Settings'
-      ? myTasksSelectedTab
-      : teamTasksSelectedTab;
-
-  // Map over tasks and add the date_name field based on date_id
+  
+  const selectedStage = availableStages.find(stage => stage.stage_id === selectedStageId);
+  
   const tasksWithDates = tasks.map((task) => {
     const dateField = dateFields.find(
       (field) => field.date_id === task.date_id
@@ -31,65 +30,20 @@ const MainContent = ({
     };
   });
 
-  useEffect(() => {
-    switch (displayTab) {
-      case 'Pre Listing':
-        setCurrentStageId(1);
-        break;
-      case 'Active Listing':
-        setCurrentStageId(2);
-        break;
-      case 'Under Contract':
-        setCurrentStageId(3);
-        break;
-      default:
-        setCurrentStageId(null);
-        break;
-    }
-  }, [displayTab]);
-
-  // Filter tasks by stage_id
-  const filteredTasks = {
-    prelisting: tasksWithDates.filter((task) => task.stage_id === 1),
-    activelisting: tasksWithDates.filter((task) => task.stage_id === 2),
-    undercontract: tasksWithDates.filter((task) => task.stage_id === 3),
-  };
+   // Filter tasks by the selected stage id
+   const filteredTasks = tasksWithDates.filter(task => task.stage_id === selectedStageId);
 
   const renderContent = () => {
-    switch (displayTab) {
-      case 'Pre Listing':
-        return (
-          <Tasks
-            tasks={filteredTasks.prelisting}
-            dateFields={dateFields}
-            reload={reloadTasks}
-          />
-        );
-      case 'Active Listing':
-        return (
-          <Tasks
-            tasks={filteredTasks.activelisting}
-            dateFields={dateFields}
-            reload={reloadTasks}
-          />
-        );
-      case 'Under Contract':
-        return (
-          <Tasks
-            tasks={filteredTasks.undercontract}
-            dateFields={dateFields}
-            reload={reloadTasks}
-          />
-        );
-      default:
-        return <h2>Please select a tab from the sidebar</h2>;
+    if (filteredTasks.length === 0) {
+      return <h2>No tasks found for this stage.</h2>;
     }
+    return <Tasks tasks={filteredTasks} dateFields={dateFields} reload={reloadTasks} />;
   };
 
   return (
     <div className="bg-[#F3F5F9] h-full overflow-y-auto p-4 md:p-6">
       <div className="flex w-full justify-between mb-2">
-        <h2 className="text-xl font-medium mb-4">{displayTab}</h2>
+        <h2 className="text-xl font-medium mb-4">{selectedStage?.stage_name || 'No Stage Selected'}</h2>
         <div
           className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-900"
           onClick={() => setIsOpen(true)}
@@ -100,8 +54,11 @@ const MainContent = ({
           isOpen={isOpen}
           setIsOpen={setIsOpen}
           dateFields={dateFields}
-          currentStageId={currentStageId}
+          currentStageId={selectedStageId}
           reload={reloadTasks}
+          availableStages={availableStages}
+          selectedState={selectedState}
+          selectedTransactionType={selectedTransactionType}
         />
       </div>
       <div>{renderContent()}</div>
@@ -115,6 +72,9 @@ const AddModal = ({
   dateFields,
   currentStageId,
   reload,
+  availableStages,
+  selectedState,
+  selectedTransactionType,
 }) => {
   return (
     <AnimatePresence>
@@ -138,6 +98,9 @@ const AddModal = ({
               dateFields={dateFields}
               currentStageId={currentStageId}
               reload={reload}
+              availableStages={availableStages}
+              selectedState={selectedState}
+              selectedTransactionType={selectedTransactionType}
             />
           </motion.div>
         </motion.div>

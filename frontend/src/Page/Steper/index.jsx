@@ -7,7 +7,7 @@ import Stepper from './Stepper.jsx';
 export const Index = () => {
   const [selectedOption, setSelectedOption] = useState('Dates'); // Default to 'Dates'
   const location = useLocation();
-  const { transactionId, createdBy, state, fullAddress, currentStep, price } =
+  const { transactionId, createdBy, state, fullAddress, currentStep, price, transactionType } =
     location.state || {};
   const initialStep = currentStep ?? 1;
   const [internalCurrentStep, setInternalCurrentStep] = useState(initialStep);
@@ -36,6 +36,7 @@ export const Index = () => {
             currentStep={internalCurrentStep}
             fullAddress={fullAddress}
             setCurrentStep={setInternalCurrentStep} // Track and update step changes
+            transactionType={transactionType}
           />
         </div>
       </div>

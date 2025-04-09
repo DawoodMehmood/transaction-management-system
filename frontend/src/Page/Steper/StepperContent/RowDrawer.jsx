@@ -8,6 +8,7 @@ import {
   getDateADayAfter,
   formatDateADayBefore,
 } from '../../../utility/getFormattedDate';
+import { apiFetch } from '../../../utility/apiFetch';
 
 const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
   const [date, setDate] = useState(
@@ -21,13 +22,13 @@ const RowForm = ({ closeModal, task, transactionId, onUpdate }) => {
     try {
       const formattedDate = date
         ? new Date(
-            Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-          )
-            .toISOString()
-            .split('T')[0]
+          Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+        )
+          .toISOString()
+          .split('T')[0]
         : null;
 
-      const response = await fetch(
+      const response = await apiFetch(
         `${getServerUrl()}/api/transactions/${task.transaction_detail_id}/task`,
         {
           method: 'PUT',

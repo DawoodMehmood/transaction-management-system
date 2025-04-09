@@ -6,8 +6,7 @@ import { apiFetch } from '../../utility/apiFetch';
 const ListingsSection = ({ refreshKey }) => {
   const [data, setData] = useState([
     { title: 'All Transactions', transaction_count: 0, amount: '$0' },
-    { title: 'Pre-Listing', transaction_count: 0, amount: '$0' },
-    { title: 'Active Listing', transaction_count: 0, amount: '$0' },
+    { title: 'Active Buyer', transaction_count: 0, amount: '$0' },
     { title: 'Under Contract', transaction_count: 0, amount: '$0' },
   ]);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,10 +16,11 @@ const ListingsSection = ({ refreshKey }) => {
     const fetchPriceSummary = async () => {
       try {
         const response = await apiFetch(
-          `${getServerUrl()}/api/transactions/price-summary?transaction_type=listing`
+          `${getServerUrl()}/api/transactions/price-summary?transaction_type=buyer`
         );
 
         const result = await response.json();
+        console.log(result);
 
         if (response.ok) {
           // Update "All Transactions" with total price and count

@@ -2,12 +2,14 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useState, useCallback } from 'react';
-import NavBar from '../../Components/NavBar';
+import NavBar from '../../Components/NavBar.jsx';
 import AddForm from './AddbuttonModal.jsx';
 import DeleteForm from './DeleteButtonModal.jsx';
-import ListingsSection from './ListingsSection.jsx';
-import Table from './Table.jsx';
-const Listings = () => {
+import BuyersSection from '../Buyers/BuyersSection.jsx';
+import BuyersTable from '../Buyers/BuyersTable.jsx';
+import ListingsSection from '../Listings/ListingsSection.jsx';
+import ListingsTable from '../Listings/ListingsTable.jsx';
+const Transactions = () => {
   const [activeTab, setActiveTab] = useState('Listing'); // Set Listing as the initial active tab
   const [isOpen, setIsOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -21,61 +23,38 @@ const Listings = () => {
     setRefreshKey((prev) => prev + 1);
   }, []);
 
-  const tabs = ['Listing', 'Buyers', 'Referrals']; // Tab items
+  const tabs = ['Listing', 'Buyer', 'Referral']; // Tab items
 
   const renderTabContent = () => {
     switch (activeTab) {
-      // case 'All':
-      //   return (
-      //     <div>
-      //       {' '}
-      //       <div>
-      //         <ListingsSection />
-      //       </div>
-      //     </div>
-      //   );
-      // case 'Purchase':
-      //   return (
-      //     <div>
-      //       <div>
-      //         <ListingsSection />
-      //       </div>
-      //     </div>
-      //   );
       case 'Listing':
         return (
           <div>
-            <ListingsSection refreshKey={refreshKey} />
+            <div className=" p-4 bg-white shadow-md rounded-lg w-[94%] mx-auto">
+              <ListingsSection refreshKey={refreshKey} />
+            </div>
+            <div className=" pt-10 w-[94%] mx-auto overflow-x-auto overflow-y-hidden">
+              <ListingsTable refreshKey={refreshKey} triggerFresh={triggerRefresh} />
+            </div>
           </div>
         );
-      // case 'Lease':
-      //   return (
-      //     <div>
-      //       <div>
-      //         <ListingsSection />
-      //       </div>
-      //     </div>
-      //   );
-      case 'Buyers':
+      case 'Buyer':
         return (
           <div>
+            <div className=" p-4 bg-white shadow-md rounded-lg w-[94%] mx-auto">
+              <BuyersSection refreshKey={refreshKey} />
+            </div>
+            <div className=" pt-10 w-[94%] mx-auto overflow-x-auto overflow-y-hidden">
+              <BuyersTable refreshKey={refreshKey} triggerFresh={triggerRefresh} />
+            </div>
+          </div>
+        );
+      case 'Referral':
+        return (
+          <div className=" p-4 bg-white shadow-md rounded-lg w-[94%] mx-auto">
             <div>Nothing to show yet</div>
           </div>
         );
-      case 'Referrals':
-        return (
-          <div>
-            <div>Nothing to show yet</div>
-          </div>
-        );
-      // case 'Other':
-      //   return (
-      //     <div>
-      //       <div>
-      //         <ListingsSection />
-      //       </div>
-      //     </div>
-      //   );
       default:
         return null;
     }
@@ -94,11 +73,11 @@ const Listings = () => {
               onClick={() => setActiveTab(tab)}
               className={`w-full py-2 px-4 text-center font-bold text-lg ${
                 activeTab === tab
-                  ? 'bg-[#F1F1F1F1] text-gray-900 shadow-lg cursor-default' // Active tab style
-                  : 'bg-[#dddddd] text-gray-600 shadow' // Inactive tab style
+                  ? 'bg-[#F1F1F1F1] text-gray-900 shadow-lg cursor-default border-t-2 border-x-2' // Active tab style
+                  : 'bg-[#dddddd] text-gray-500 shadow' // Inactive tab style
               }`}
             >
-              {tab}
+              {tab}s
             </button>
           ))}
           {/* <QuestionMarkCircleIcon className='w-6 h-6 text-gray-500 hover:text-gray-700 cursor-pointer mt-3 md:mt-0 ms-3' /> */}
@@ -121,28 +100,26 @@ const Listings = () => {
               + Add | ▼
             </div>
 
-            <AddModal isOpen={isOpen} setIsOpen={setIsOpen} />
+            <AddModal isOpen={isOpen} setIsOpen={setIsOpen} activeTab={activeTab.toLowerCase()} />
             <DeleteModal
               showDeleteModal={showDeleteModal}
               setShowDeleteModal={setShowDeleteModal}
               onDeleteComplete={triggerRefresh}
+              activeTab={activeTab.toLowerCase()}
             />
           </div>
         </div>
       </div>
 
       {/* Content Section */}
-      <div className=" p-4 bg-white shadow-md rounded-lg w-[94%] mx-auto">
+      <div>
         {renderTabContent()}
       </div>
 
-      <div className=" pt-10 w-[94%] mx-auto overflow-x-auto overflow-y-hidden">
-        <Table refreshKey={refreshKey} />
-      </div>
     </div>
   );
 };
-const AddModal = ({ isOpen, setIsOpen }) => {
+const AddModal = ({ isOpen, setIsOpen, activeTab }) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -160,7 +137,7 @@ const AddModal = ({ isOpen, setIsOpen }) => {
             onClick={(e) => e.stopPropagation()}
             className="  shadow-xl cursor-default"
           >
-            <AddForm closeModal={() => setIsOpen(false)} />
+            <AddForm closeModal={() => setIsOpen(false)} transactionType={activeTab} />
           </motion.div>
         </motion.div>
       )}
@@ -171,6 +148,7 @@ const DeleteModal = ({
   showDeleteModal,
   setShowDeleteModal,
   onDeleteComplete,
+  activeTab
 }) => {
   const handleClose = () => {
     setShowDeleteModal(false);
@@ -195,11 +173,11 @@ const DeleteModal = ({
             onClick={(e) => e.stopPropagation()}
             className="  shadow-xl cursor-default"
           >
-            <DeleteForm closeModal={handleClose} />
+            <DeleteForm closeModal={handleClose} transactionType={activeTab} />
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
   );
 };
-export default Listings;
+export default Transactions;

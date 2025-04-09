@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getServerUrl } from '../../utility/getServerUrl';
+import { apiFetch } from '../../utility/apiFetch';
 
 const menuItems = [
   { name: 'Dates', hasBadge: false },
@@ -39,7 +40,7 @@ export const SideSection = ({
     try {
       setLoading(true); // Start loader
 
-      const response = await fetch(
+      const response = await apiFetch(
         `${getServerUrl()}/api/transactions/${transaction_detail_id}/status`,
         {
           method: 'PUT', // Assuming PUT for status update
@@ -86,12 +87,6 @@ export const SideSection = ({
   return (
     <div className="w-full md:w-80 h-auto md:h-[120vh] bg-white p-4 shadow-lg mt-1">
       {/* Header and Address Sections */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="bg-gray-200 text-[#9094A5] px-2 py-1 text-xs rounded-md">
-          Listing
-        </span>
-        <div className="text-gray-400 cursor-pointer">⋮</div>
-      </div>
       <div className="text-lg font-bold text-gray-800 mb-2 leading-tight">
         {fullAddress}{' '}
       </div>

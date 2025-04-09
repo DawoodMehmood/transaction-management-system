@@ -2,11 +2,11 @@ import React from 'react';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
-import Calendar from './Page/Calendar/index.jsx';
-import Settings from './Page/Settings/index.jsx';
-import Listing from './Page/Listings/Listings.jsx';
-import LoginSignUpScreen from './Page/Login/LoginSignUpScreen.jsx';
-import Index from './Page/Steper/index.jsx';
+import Calendar from './Page/Calendar/index';
+import Settings from './Page/Settings/index';
+import Transactions from './Page/Home/Transactions';
+import LoginSignUpScreen from './Page/Login/LoginSignUpScreen';
+import Index from './Page/Steper/index';
 import { ToastContainer } from 'react-toastify';
 import PrivateRoute from './PrivateRoute'; // Import the PrivateRoute component
 
@@ -22,7 +22,7 @@ function App() {
           {/* Private routes */}
           <Route
             path="/Transactions"
-            element={<PrivateRoute element={<Listing />} />}
+            element={<PrivateRoute element={<Transactions />} />}
           />
           <Route
             path="/Calendars"

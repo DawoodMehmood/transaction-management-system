@@ -7,11 +7,7 @@ exports.getStates = async (req, res) => {
       const query = `
         SELECT 
           state, 
-          state_name, 
-          created_date, 
-          created_by, 
-          updated_date, 
-          updated_by 
+          state_name
         FROM 
           tkg.state
         ORDER BY state_name;
@@ -24,10 +20,17 @@ exports.getStates = async (req, res) => {
           message: 'No states found.',
         });
       }
-  
+      
+      let states = result.rows;
+      
+      // If the user is not superadmin, get their allowed states.
+      if (req.user && req.user.role !== 'superadmin' && req.user.allowedStates && req.user.allowedStates.length > 0) {
+        states = states.filter(stateObj => req.user.allowedStates.includes(stateObj.state));
+      }
+    
       res.status(200).json({
         message: 'States retrieved successfully.',
-        states: result.rows,
+        states: states,
       });
   
     } catch (error) {

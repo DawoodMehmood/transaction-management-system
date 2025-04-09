@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { getServerUrl } from '../../../utility/getServerUrl';
-import { showSuccessToast, showWarningToast } from '../../../toastConfig';
+import { showWarningToast } from '../../../toastConfig';
 import {
   formatDate,
   getDateADayAfter,
 } from '../../../utility/getFormattedDate';
+import { XIcon } from '@heroicons/react/outline';
+import { apiFetch } from '../../../utility/apiFetch';
 
-const DateFields = ({ transactionId, createdBy, state, stageId }) => {
-  console.log('Date content', transactionId, createdBy, state, stageId);
+const DateFields = ({ transactionId, createdBy, state, stageId, transactionType }) => {
   const [dateFields, setDateFields] = useState([]); // Static date fields
   const [transactionDates, setTransactionDates] = useState([]); // Transaction-specific dates
   const [selectedDates, setSelectedDates] = useState([]); // User-selected dates
@@ -20,7 +21,7 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
   // Fetch static date fields
   const fetchAllDateFields = async () => {
     try {
-      const response = await fetch(`${getServerUrl()}/api/transactions/dates`);
+      const response = await apiFetch(`${getServerUrl()}/api/transactions/dates?state=${state}&transaction_type=${transactionType}`);
       if (!response.ok) throw new Error('Failed to fetch date fields.');
       const data = await response.json();
       setDateFields(data);
@@ -33,7 +34,7 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
   // Fetch transaction-specific dates
   const fetchTransactionDates = async () => {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${getServerUrl()}/api/dates/${transactionId}/${stageId}`
       );
       if (!response.ok) {
@@ -119,6 +120,7 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
       state_id: state,
       stage_id: stageId,
       dates: datesToAdd,
+      transaction_type: transactionType
     };
 
     setErrorMessage('');
@@ -128,7 +130,7 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
     }
     setIsLoading(true);
     try {
-      const response = await fetch(`${getServerUrl()}/api/dates/add`, {
+      const response = await apiFetch(`${getServerUrl()}/api/dates/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -137,6 +139,7 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
       if (response.ok) {
         // showSuccessToast('Dates added or updated successfully.');
         fetchTransactionDates(); // Refresh transaction dates
+        setSelectedDates([]);
       } else {
         throw new Error('Failed to add or update dates.');
       }
@@ -162,6 +165,33 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
 
     return 'N/A';
   };
+  
+    // Get the base date from the transaction dates (if any) for a given field.
+    const getBaseDate = (index) => {
+      const transactionDate = transactionDates.find(
+        (date) => date.date_name === dateFields[index]?.date_name
+      );
+      return transactionDate?.entered_date ? new Date(transactionDate.entered_date) : null;
+    };
+  
+    // Check if the date has been modified (unsaved change)
+    const hasUnsavedChange = (index) => {
+      const newDate = selectedDates[index];
+      const baseDate = getBaseDate(index);
+  
+      if (!newDate) return false; // No new date selected
+      if (!baseDate) return true; // No original date, so any selection is new
+  
+      return formatDate(newDate) !== formatDate(baseDate);
+    };
+  
+    // Revert the date back to its base (saved) value or clear if no base exists.
+    const handleRevert = (index) => {
+      const baseDate = getBaseDate(index);
+      const updatedDates = [...selectedDates];
+      updatedDates[index] = baseDate; // If baseDate is null, it will revert to N/A.
+      setSelectedDates(updatedDates);
+    };
 
   return (
     <div className="container mx-auto p-4">
@@ -202,6 +232,17 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
               <p className="font-normal text-lg ms-4">
                 {getDisplayedDate(index)}
               </p>
+              
+               {/* Render the cross only if the date has been changed and not yet saved */}
+               {hasUnsavedChange(index) && (
+                <button
+                  onClick={() => handleRevert(index)}
+                  className="cursor-pointer ml-2 text-gray-500 text-xl font-bold"
+                  title="Revert to previous date"
+                >
+                  <XIcon className="size-4" />
+                </button>
+              )}
               {openPickerIndex == index && (
                 <div className="absolute top-full left-0 z-10">
                   <DatePicker
@@ -210,13 +251,15 @@ const DateFields = ({ transactionId, createdBy, state, stageId }) => {
                     inline
                     calendarClassName="custom-calendar"
                     popperPlacement="bottom"
+                    onClickOutside={() => setOpenPickerIndex(null)}
                   />
                 </div>
               )}
             </div>
           </div>
         </div>
-      ))}
+        )
+)}
 
       <div className="flex justify-center">
         <button
