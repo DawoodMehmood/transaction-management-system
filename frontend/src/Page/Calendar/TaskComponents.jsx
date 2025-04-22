@@ -6,6 +6,7 @@ import { formatDate } from '../../utility/getFormattedDate';
 import { TrashIcon } from '@heroicons/react/outline';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiFetch } from '../../utility/apiFetch';
+import { capitalize } from '../../utility/getCapitalizeWord';
 
 // API call to fetch tasks
 export const fetchTasks = async (selectedState = '', selectedTransactionType = '') => {
@@ -165,7 +166,7 @@ const TaskTable = ({
               )}
             </td>
             <td className="px-4 py-3 text-nowrap">{task.transactionName}</td>
-            <td className="px-4 py-3 text-nowrap">{task.transactionType}</td>
+            <td className="px-4 py-3 text-nowrap">{capitalize(task.transactionType)}</td>
           </tr>
         ))}
       </tbody>

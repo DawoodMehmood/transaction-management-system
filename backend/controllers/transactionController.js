@@ -467,7 +467,7 @@ exports.updateTransactionStage = async (req, res) => {
         // Clone dates only when moving up a stage
         if (new_stage > current_stage) {
             const fetchDatesQuery = `
-          SELECT state_id, date_id, date_name, entered_date::DATE::TEXT, created_date, created_by, transaction_id, stage_id, updated_date, updated_by
+          SELECT state_id, date_id, transaction_type, date_name, entered_date::DATE::TEXT, created_date, created_by, transaction_id, stage_id, updated_date, updated_by
           FROM tkg.dates
           WHERE transaction_id = $1 AND stage_id = $2;
         `;
@@ -475,15 +475,18 @@ exports.updateTransactionStage = async (req, res) => {
 
             if (datesResult.rows.length > 0) {
                 const insertDatesQuery = `
-            INSERT INTO tkg.dates (state_id, date_id, date_name, entered_date, created_date, created_by, transaction_id, stage_id, updated_date, updated_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            ON CONFLICT (state_id, date_name, transaction_id, stage_id)
+            INSERT INTO tkg.dates 
+            (state_id, date_id, transaction_type, date_name, entered_date, created_date, created_by, transaction_id, stage_id, updated_date, updated_by)
+            VALUES 
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT ON CONSTRAINT unique_state_date_name_transaction
             DO NOTHING;
           `;
                 const insertPromises = datesResult.rows.map((date) =>
                     client.query(insertDatesQuery, [
                         date.state_id,
                         date.date_id,
+                        date.transaction_type,
                         date.date_name,
                         date.entered_date,
                         date.created_date,
