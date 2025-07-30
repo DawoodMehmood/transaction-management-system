@@ -12,6 +12,7 @@ export async function apiFetch(url, options = {}) {
 
   if (response.status === 401) {
     // Token expired or invalid - force user to log in again
+    localStorage.removeItem('user');
     window.location.href = '/';
     return;
   }

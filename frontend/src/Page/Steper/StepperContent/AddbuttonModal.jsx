@@ -112,15 +112,14 @@ const AddTaskForm = ({ closeModal, currentStageId, reload, transactionType, stat
           onClick={() => setShowDatePicker(true)}
         >
           {date
-            ? isUserSelected
-              ? formatDateADayBefore(date)
-              : formatDate(date)
+            ? 
+            formatDate(date)
             : 'Select a date'}
         </p>
         {showDatePicker && (
           <div className="absolute top-full left-0 z-10">
             <DatePicker
-              selected={isUserSelected ? date : getDateADayAfter(date)}
+              selected={date}
               onChange={(newdate) => {
                 setDate(newdate);
                 setIsUserSelected(true); // Mark that the user manually selected a date

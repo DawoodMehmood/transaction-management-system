@@ -272,17 +272,19 @@ const ChecklistsContent = ({ currentStep, transactionId, transactionType, state 
               key={stage.stage_id}
               onClick={() => setActiveStage(stage.stage_id)}
               className={`py-2 m-3 px-4 border-b-2 ${activeStage == stage.stage_id
-                  ? 'border-b-blue-500 text-blue-600'
-                  : 'border-b-transparent text-gray-700'
+                ? 'border-b-blue-500 text-blue-600'
+                : 'border-b-transparent text-gray-700'
                 }`}
             >
-              {stage.stage_id == 1
+              {stage.stage_id === 1
                 ? 'Pre-Listing'
-                : stage.stage_id == 2
-                  ? 'Active Listing'
-                  : stage.stage_id == 3
+                : stage.stage_id === 2
+                  ? transactionType === 'listing'
+                    ? 'Active Listing'
+                    : 'Under Contract'
+                  : stage.stage_id === 3
                     ? 'Under Contract'
-                    : `No stage`}
+                    : 'No stage'}
             </button>
           ))}
         </div>
@@ -400,8 +402,8 @@ const RowDrawer = ({
                   >
                     <TrashIcon
                       className={`w-6 h-6 text-gray-500 ${task.is_skipped
-                          ? 'cursor-not-allowed'
-                          : 'cursor-pointer'
+                        ? 'cursor-not-allowed'
+                        : 'cursor-pointer'
                         }`}
                     />
                   </div>
@@ -559,8 +561,8 @@ const DuplicateModal = ({
                   <button
                     onClick={() => setFrequency('day')}
                     className={`p-2 w-full ${frequency === 'day'
-                        ? 'bg-gray-500 text-white'
-                        : 'bg-gray-300'
+                      ? 'bg-gray-500 text-white'
+                      : 'bg-gray-300'
                       }`}
                   >
                     Day(s)
@@ -568,8 +570,8 @@ const DuplicateModal = ({
                   <button
                     onClick={() => setFrequency('week')}
                     className={`p-2 border border-x-gray-500 w-full ${frequency === 'week'
-                        ? 'bg-gray-500 text-white'
-                        : 'bg-gray-300'
+                      ? 'bg-gray-500 text-white'
+                      : 'bg-gray-300'
                       }`}
                   >
                     Week(s)
@@ -577,8 +579,8 @@ const DuplicateModal = ({
                   <button
                     onClick={() => setFrequency('month')}
                     className={`p-2 w-full ${frequency === 'month'
-                        ? 'bg-gray-500 text-white'
-                        : 'bg-gray-300'
+                      ? 'bg-gray-500 text-white'
+                      : 'bg-gray-300'
                       }`}
                   >
                     Month(s)

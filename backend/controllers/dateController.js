@@ -306,16 +306,16 @@ exports.getAllTransactionsCalendar = async (req, res) => {
           tkg.transaction_detail td
       LEFT JOIN 
           tkg.dates d ON 
-              td.state_id = d.state_id AND 
-              td.date_id = d.date_id AND 
-              td.transaction_id = d.transaction_id AND 
-              td.stage_id = d.stage_id
+          td.state_id = d.state_id AND 
+          td.date_id = d.date_id AND 
+          td.transaction_id = d.transaction_id AND 
+          td.stage_id = d.stage_id
       LEFT JOIN 
           tkg.transaction t ON t.transaction_id = td.transaction_id
       LEFT JOIN 
           tkg.state s ON t.state = s.state
       WHERE 
-          td.date_id = d.date_id AND td.state_id = $1
+          td.state_id = $1
     `;
     const params = [state];
 

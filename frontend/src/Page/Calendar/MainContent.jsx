@@ -7,12 +7,20 @@ const MainContent = ({
   teamTasksSelectedTab,
   activeSection,
   reloadTasks,
-  tasks
+  tasks,
+  loadingTasks
 }) => {
   const displayTab =
     activeSection === 'My Tasks' ? myTasksSelectedTab : teamTasksSelectedTab;
 
   const renderContent = () => {
+    if (loadingTasks) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <span className="text-gray-500">Loading Tasks...</span>
+        </div>
+      );
+    }
     switch (displayTab) {
       case 'All Tasks':
         return <AllTasks reloadTasks={reloadTasks} tasks={tasks} />;

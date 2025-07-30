@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import NavBar from '../../Components/NavBar';
 import MainContent from './MainContent.jsx';
 import Sidebar from './Sidebar/Sidebar.jsx';
-import { fetchTasks } from './TaskComponents.jsx';
-import { showErrorToast } from '../../toastConfig';
+import fetchTasks from '../../utility/fetchTasks.js';
 
 const Index = () => {
   const [myTasksSelectedTab, setMyTasksSelectedTab] = useState('All Tasks');
@@ -11,6 +10,7 @@ const Index = () => {
   const [activeSection, setActiveSection] = useState('My Tasks');
   const [tasks, setTasks] = useState([]);
   const [reloadTrigger, setReloadTrigger] = useState(false);
+  const [loadingTasks, setLoadingtasks] = useState(null);
 
   // New state for filters:
   const [selectedState, setSelectedState] = useState(''); // e.g., "IL" or empty for all
@@ -18,12 +18,13 @@ const Index = () => {
 
   const fetchData = async () => {
     try {
+      setLoadingtasks(true);
       const data = await fetchTasks(selectedState, selectedTransactionType);
       setTasks(data);
     } catch (error) {
       setTasks([]);
-      // showErrorToast('No tasks found');
     } finally {
+      setLoadingtasks(false);
       setReloadTrigger(false);
     }
   };
@@ -37,7 +38,7 @@ const Index = () => {
       return;
     }
     fetchData();
-  }, [reloadTrigger, selectedState]);
+  }, [reloadTrigger, selectedState, selectedTransactionType]);
 
   return (
     <div>
@@ -67,6 +68,7 @@ const Index = () => {
                 activeSection={activeSection}
                 reloadTasks={() => setReloadTrigger(true)}
                 tasks={tasks}
+                loadingTasks={loadingTasks}
               />
             </div>
           </div>
